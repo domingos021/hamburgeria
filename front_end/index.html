@@ -1,0 +1,52 @@
+<!-- 
+  ============================================================================
+  HTML BASE DA APLICAÇÃO
+  ============================================================================
+  
+  Este arquivo é o HTML base do projeto e funciona como ponto de entrada.
+  Ele não contém a interface final - toda a aplicação React será injetada
+  dinamicamente dentro da div #root através do arquivo main.tsx.
+-->
+
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <!-- Torna o layout responsivo em dispositivos móveis -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ========================================================================
+       FONTE GOOGLE (Sen)
+       ======================================================================== 
+       Pré-conecta aos servidores do Google Fonts para otimizar o carregamento
+       e importa a família de fontes Sen com pesos de 400 a 800
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sen:wght@400..800&display=swap" rel="stylesheet">
+
+  <!-- Título exibido na aba do navegador -->
+  <title>Dj Hamburguer</title>
+</head>
+
+<body>
+  <!-- ========================================================================
+       ELEMENTO RAIZ DA APLICAÇÃO
+       ======================================================================== 
+       Container onde o React renderiza toda a aplicação.
+       O conteúdo é injetado dinamicamente pelo main.tsx usando o ID "root"
+  -->
+  <div id="root"></div>
+
+  <!-- ========================================================================
+       SCRIPT PRINCIPAL
+       ======================================================================== 
+       Carrega o arquivo main.tsx (ponto de entrada da aplicação React).
+       O Vite processa e transforma o TypeScript automaticamente para JavaScript
+  -->
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

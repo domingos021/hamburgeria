@@ -1,0 +1,98 @@
+meu-projeto/
+│
+├── .vscode/
+│   ├── settings.json        ← CONFIGURAÇÃO DO PROJETO
+│
+├── backend/
+│   ├── src/
+│   │   ├── modules/
+│   │   │   └── user/
+│   │   │       ├── user.controller.ts
+│   │   │       ├── user.service.ts
+│   │   │       └── user.model.ts
+│   │   ├── middlewares/
+│   │   ├── config/
+│   │   │   └── database.ts
+│   │   ├── routes/
+│   │   │   └── user.routes.ts
+│   │   ├── utils/
+│   │   ├── types/
+│   │   └── index.ts
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── .env
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   ├── assets/
+│   │   └── App.tsx
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── vite.config.ts
+│
+├── docker-compose.yml
+└── README.md
+
+
+
+vscode seeting:
+{
+  // ==============================
+  // 💡 APARÊNCIA E CONFORTO
+  // ==============================
+  "editor.fontSize": 16,
+  "editor.lineHeight": 24,
+  "editor.fontFamily": "JetBrains Mono, Consolas, 'Courier New', monospace",
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.minimap.enabled": false,
+  "workbench.colorTheme": "Default Dark Modern",
+
+  // ==============================
+  // 🔧 FORMATADORES E CÓDIGO LIMPO
+  // ==============================
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+    "source.organizeImports": true
+  },
+
+  // ==============================
+  // 💡 TYPESCRIPT + JAVASCRIPT
+  // ==============================
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "typescript.suggest.autoImports": true,
+  "javascript.suggest.autoImports": true,
+
+  // ==============================
+  // 🔍 BUSCA E NAVEGAÇÃO
+  // ==============================
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true
+  },
+
+  // ==============================
+  // ⚙️ TERMINAL
+  // ==============================
+  "terminal.integrated.defaultProfile.windows": "Git Bash",
+  "terminal.integrated.fontSize": 14,
+
+  // ==============================
+  // 💅 ARQUIVOS E ORGANIZAÇÃO
+  // ==============================
+  "files.autoSave": "off",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "explorer.confirmDelete": false,
+
+  // ==============================
+  // 🧪 TESTES (caso você use jest)
+  // ==============================
+  "jest.autoRun": "off"
+}

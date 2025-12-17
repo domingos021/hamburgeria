@@ -20,6 +20,8 @@ import Register from "../pages/cadastro";
 import Home from "../pages/home";
 import Header from "../Header";
 import OrderRequests from "../pages/pedidos";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 
 /**
  * ============================================================================
@@ -99,5 +101,13 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     element: <Register />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
   },
 ]);

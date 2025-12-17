@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    // -------------------------
+    // Pastas de origem e destino
+    // -------------------------
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // -------------------------
+    // Configuração de módulos (ESM Moderno)
+    // -------------------------
+    "module": "Node16", // ← MUDANÇA AQUI
+    "moduleResolution": "Node16",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+
+    // -------------------------
+    // Geração de arquivos auxiliares
+    // -------------------------
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    // -------------------------
+    // Verificações de tipos (Strict Mode Completo)
+    // -------------------------
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noPropertyAccessFromIndexSignature": true,
+
+    // -------------------------
+    // Interoperabilidade e resolução
+    // -------------------------
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"]
+}

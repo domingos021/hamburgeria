@@ -1,0 +1,44 @@
+// ===============================================
+// 🌐 CONFIGURAÇÃO DO CLIENT PRISMA
+// ===============================================
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+// ===============================================
+// 🗄️ CONFIGURAÇÃO DO BANCO DE DADOS
+// ===============================================
+datasource db {
+  provider = "postgresql"
+}
+
+// ===============================================
+// 👤 TABELA: USER
+// ===============================================
+model User {
+  id       String  @id @default(uuid())
+  email    String  @unique
+  name     String?
+  password String
+  // Adicione estes campos:
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  cep      String
+}
+
+/*
+backend/
+├── src/
+│   ├── controllers/
+│   │   └── password.controller.ts ✅ (já criado no artifact)
+│   ├── routes/
+│   │   └── password.routes.ts
+│   ├── lib/
+│   │   └── mail.ts
+│   └── server.ts (atualizar)
+├── prisma/
+│   └── schema.prisma (adicionar campos)
+└── .env (adicionar variáveis de email)
+
+*/

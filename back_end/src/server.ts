@@ -1,31 +1,64 @@
-import express, { Request, Response, NextFunction } from "express";
+import express from "express";
+import helmet from "helmet";
 import cors from "cors";
-import { testConnection } from "./lib/db.js";
-import { verifyMailConnection } from "../src/lib/mail.js";
+import { verifyMailConnection } from "./lib/mail.js";
+import { generalLimiter } from "./middleware/rateLimiter.js";
+import passwordRoutes from "./routes/password.routes.js";
+import authRoutes from "../src/routes/auth_routes.js"; // ← ADICIONE ESTA LINHA
+import { prisma } from "./lib/db.js";
 
-import authRoutes from "../src/routes/auth_routes.js";
-import passwordRoutes from "../src/routes/password.routes.js";
+const app = express();
 
-const server = express();
+// ======================================================
+// SEGURANÇA - HELMET
+// ======================================================
+app.use(helmet());
 
-server.use(express.json());
-server.use(cors());
+// ======================================================
+// CORS
+// ======================================================
+app.use(
+  cors({
+    origin: process.env["FRONTEND_URL"] || "http://localhost:5173",
+    credentials: true,
+  })
+);
 
-server.use((req: Request, res: Response, next: NextFunction) => {
-  console.log("━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("📍 Rota:", req.method, req.url);
-  console.log("📦 Body:", req.body);
-  console.log("━━━━━━━━━━━━━━━━━━━━━━");
-  next();
-});
+// ======================================================
+// RATE LIMITING GERAL
+// ======================================================
+app.use(generalLimiter);
 
-server.use(authRoutes);
-server.use(passwordRoutes);
+// ======================================================
+// BODY PARSER
+// ======================================================
+app.use(express.json());
 
-const PORT = Number(process.env["PORT"]) || 3000;
+// ======================================================
+// ROTAS
+// ======================================================
+app.use(passwordRoutes);
+app.use(authRoutes); // ← ADICIONE ESTA LINHA
 
-server.listen(PORT, async () => {
+// ======================================================
+// VERIFICAÇÃO DE EMAIL
+// ======================================================
+verifyMailConnection();
+
+// ======================================================
+// VERIFICAÇÃO DO BANCO DE DADOS
+// ======================================================
+prisma
+  .$connect()
+  .then(() => console.log("🔗 Oba! Conectado ao banco de dados com sucesso!"))
+  .catch((error) => console.error("❌ Erro ao conectar no banco:", error));
+
+// ======================================================
+// INICIAR SERVIDOR
+// ======================================================
+const PORT = process.env["PORT"] || 3000;
+app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  await testConnection();
-  await verifyMailConnection();
 });
+
+// site (resend) para criar chave e enviar ao email para redefinição se senha

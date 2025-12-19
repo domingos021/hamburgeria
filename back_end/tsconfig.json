@@ -1,49 +1,97 @@
 {
   "compilerOptions": {
-    // -------------------------
-    // Pastas de origem e destino
-    // -------------------------
+    // Define a pasta raiz do código-fonte TypeScript
     "rootDir": "./src",
+
+    // Define a pasta onde os arquivos compilados (JS) serão gerados
     "outDir": "./dist",
 
-    // -------------------------
-    // Configuração de módulos (ESM Moderno)
-    // -------------------------
-    "module": "Node16", // ← MUDANÇA AQUI
+    // =====================================================
+    // CONFIGURAÇÃO DE MÓDULOS (ESM MODERNO + NODE 16+)
+    // =====================================================
+
+    // Define o sistema de módulos como Node16 (ESM moderno)
+    "module": "Node16",
+
+    // Define como o TypeScript resolve imports (compatível com Node ESM)
     "moduleResolution": "Node16",
+
+    // Define a versão do JavaScript de saída
     "target": "ES2022",
+
+    // Define as bibliotecas padrão disponíveis no projeto
     "lib": ["ES2022"],
 
-    // -------------------------
-    // Geração de arquivos auxiliares
-    // -------------------------
+    // =====================================================
+    // GERAÇÃO DE ARQUIVOS AUXILIARES
+    // =====================================================
+
+    // Gera arquivos .map para facilitar debug
     "sourceMap": true,
+
+    // Gera arquivos .d.ts (declarações de tipos)
     "declaration": true,
+
+    // Gera source maps para os arquivos .d.ts
     "declarationMap": true,
 
-    // -------------------------
-    // Verificações de tipos (Strict Mode Completo)
-    // -------------------------
+    // =====================================================
+    // VERIFICAÇÕES DE TIPOS (STRICT MODE COMPLETO)
+    // =====================================================
+
+    // Ativa todas as verificações estritas do TypeScript
     "strict": true,
+
+    // Obriga verificação de índices possivelmente indefinidos
     "noUncheckedIndexedAccess": true,
+
+    // Diferencia propriedades opcionais de propriedades que aceitam undefined
     "exactOptionalPropertyTypes": true,
+
+    // Garante que toda função tenha retorno explícito
     "noImplicitReturns": true,
+
+    // Evita fallthrough acidental em switch-case
     "noFallthroughCasesInSwitch": true,
+
+    // Impede variáveis locais não utilizadas
     "noUnusedLocals": true,
+
+    // Impede parâmetros de função não utilizados
     "noUnusedParameters": true,
+
+    // Impede acesso direto a propriedades via index signature
     "noPropertyAccessFromIndexSignature": true,
 
-    // -------------------------
-    // Interoperabilidade e resolução
-    // -------------------------
+    // =====================================================
+    // INTEROPERABILIDADE E RESOLUÇÃO
+    // =====================================================
+
+    // Garante que cada arquivo seja tratado como um módulo isolado
     "isolatedModules": true,
+
+    // Ignora checagem de tipos em arquivos .d.ts de dependências
     "skipLibCheck": true,
+
+    // Permite interoperabilidade entre CommonJS e ES Modules
     "esModuleInterop": true,
+
+    // Permite imports default sintéticos
     "allowSyntheticDefaultImports": true,
+
+    // Garante consistência de maiúsculas/minúsculas nos imports
     "forceConsistentCasingInFileNames": true,
+
+    // Permite importar arquivos JSON como módulos
     "resolveJsonModule": true,
+
+    // Impede imports diretos de arquivos .ts (boa prática em produção)
     "allowImportingTsExtensions": false
   },
+
+  // Define quais arquivos entram no processo de compilação
   "include": ["src/**/*"],
+
+  // Define quais arquivos/pastas são ignorados pelo compilador
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"]
 }

@@ -1,3 +1,26 @@
+// ======================================================
+// COMPONENTE: Prisma Schema (User Domain)
+// ======================================================
+//
+// ARQUIVO:
+// prisma/schema.prisma
+//
+// DESCRIÇÃO:
+// Arquivo responsável por definir a estrutura do banco
+// de dados da aplicação utilizando o Prisma ORM.
+//
+// FUNÇÃO:
+// - Declarar o gerador do Prisma Client
+// - Configurar a fonte de dados (PostgreSQL)
+// - Definir os modelos e relações do domínio
+//
+// OBJETIVOS:
+// - Garantir consistência entre código e banco de dados
+// - Centralizar a definição do schema
+// - Facilitar migrações e versionamento do banco
+// - Suportar recursos de autenticação e recuperação de senha
+// ======================================================
+
 // ===============================================
 // 🌐 CONFIGURAÇÃO DO CLIENT PRISMA
 // ===============================================

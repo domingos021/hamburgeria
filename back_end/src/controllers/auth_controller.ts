@@ -1,6 +1,25 @@
 // ======================================================
 // ARQUIVO: src/controllers/auth.controller.ts
 // ======================================================
+//
+// COMPONENTE: AuthController
+//
+// DESCRIÇÃO:
+// Controller responsável por centralizar todas as operações
+// relacionadas à autenticação e gerenciamento básico de usuários
+// no backend da aplicação.
+//
+// FUNÇÃO:
+// Gerenciar o fluxo de registro, login, listagem e atualização
+// de senha de usuários, atuando como intermediário entre as
+// requisições HTTP, a lógica de segurança e o banco de dados.
+//
+// OBJETIVOS:
+// - Garantir autenticação segura utilizando hash de senha (bcrypt)
+// - Validar dados de entrada antes de interagir com o banco
+// - Centralizar regras de autenticação em um único controller
+// - Facilitar manutenção, testes e escalabilidade do sistema
+// ======================================================
 
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";

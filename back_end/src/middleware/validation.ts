@@ -1,4 +1,27 @@
 // ======================================================
+// COMPONENTE: ValidationMiddleware (Password Flow)
+// ======================================================
+//
+// ARQUIVO:
+// src/middleware/validation.ts
+//
+// DESCRIÇÃO:
+// Middleware responsável pela validação de dados de entrada
+// relacionados ao fluxo de recuperação e redefinição de senha.
+//
+// FUNÇÃO:
+// - Validar formato e consistência dos dados recebidos
+// - Garantir integridade antes da execução dos controllers
+// - Centralizar regras de validação do fluxo de senha
+//
+// OBJETIVOS:
+// - Prevenir dados inválidos ou malformados na API
+// - Reforçar segurança no processo de redefinição de senha
+// - Melhorar experiência do usuário com mensagens claras
+// - Separar validação da lógica de negócio
+// ======================================================
+
+// ======================================================
 // IMPORTAÇÕES E DEPENDÊNCIAS
 // ======================================================
 

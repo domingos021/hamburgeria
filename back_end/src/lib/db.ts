@@ -1,3 +1,30 @@
+// ======================================================
+// COMPONENTE: DatabaseConnection (Prisma + PostgreSQL)
+// ======================================================
+//
+// ARQUIVO:
+// src/lib/db.ts
+//
+// DESCRIÇÃO:
+// Módulo responsável pela configuração, inicialização e
+// gerenciamento da conexão com o banco de dados PostgreSQL
+// utilizando Prisma ORM com adapter nativo do pg.
+//
+// FUNÇÃO:
+// - Carregar variáveis de ambiente
+// - Criar e gerenciar o pool de conexões do PostgreSQL
+// - Configurar o Prisma Client com adapter PostgreSQL
+// - Disponibilizar uma instância única do Prisma
+// - Garantir conexão segura e eficiente com o banco
+//
+// OBJETIVOS:
+// - Centralizar a configuração de acesso ao banco de dados
+// - Garantir performance através de connection pooling
+// - Facilitar debug e observabilidade das queries
+// - Assegurar encerramento correto das conexões (graceful shutdown)
+// - Fornecer base sólida e confiável para todo o backend
+// ======================================================
+
 // ============================================
 // CONFIGURAÇÃO DE VARIÁVEIS DE AMBIENTE
 // ============================================

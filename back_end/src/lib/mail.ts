@@ -1,4 +1,30 @@
 // ======================================================
+// COMPONENTE: MailService (Email Transacional)
+// ======================================================
+//
+// ARQUIVO:
+// src/lib/mail.ts
+//
+// DESCRIÇÃO:
+// Módulo responsável pelo envio de emails transacionais
+// da aplicação, com foco em comunicação segura e confiável
+// com o usuário.
+//
+// FUNÇÃO:
+// - Inicializar o cliente de email (Resend)
+// - Centralizar a configuração de remetente
+// - Enviar emails de redefinição de senha
+// - Validar configuração do serviço de email
+//
+// OBJETIVOS:
+// - Garantir envio de emails transacionais de forma segura
+// - Centralizar lógica de comunicação por email
+// - Facilitar manutenção e troca de provedores de email
+// - Fornecer templates HTML profissionais e consistentes
+// - Aumentar confiabilidade e rastreabilidade de comunicações
+// ======================================================
+
+// ======================================================
 // ARQUIVO: src/lib/mail.ts
 // RESPONSABILIDADE: ENVIO DE EMAILS
 // ======================================================

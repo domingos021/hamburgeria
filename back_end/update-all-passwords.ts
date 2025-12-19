@@ -1,3 +1,33 @@
+// ======================================================
+// COMPONENTE: PasswordMigrationScript
+// ======================================================
+//
+// ARQUIVO:
+// updateAllPasswords.ts
+//
+// DESCRIÇÃO:
+// Script utilitário responsável por verificar e corrigir
+// o armazenamento de senhas no banco de dados, garantindo
+// que todas estejam devidamente criptografadas com bcrypt.
+//
+// FUNÇÃO:
+// - Percorrer todos os usuários cadastrados
+// - Identificar senhas armazenadas em texto puro
+// - Gerar hash seguro para senhas não criptografadas
+// - Atualizar os registros no banco de dados
+//
+// OBJETIVOS:
+// - Corrigir falhas de segurança herdadas
+// - Padronizar o armazenamento de senhas
+// - Apoiar processos de migração de dados
+// - Garantir conformidade com boas práticas de segurança
+//
+// OBSERVAÇÕES:
+// - Deve ser executado apenas em ambiente controlado
+// - Não deve ser exposto como endpoint da API
+// - Recomendado executar uma única vez ou sob demanda
+// ======================================================
+
 // Carrega automaticamente as variáveis de ambiente definidas no arquivo .env
 // Isso permite acesso seguro a credenciais e configurações sensíveis
 import "dotenv/config";

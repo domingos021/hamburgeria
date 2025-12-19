@@ -44,26 +44,27 @@ const ResetPassword = () => {
   const [searchParams] = useSearchParams();
 
   // ======================================================
+  // DERIVA O TOKEN DIRETAMENTE DA URL (SEM ESTADO)
+  // ======================================================
+
+  const token = searchParams.get("token");
+
+  // ======================================================
   // ESTADOS DO FORMULÁRIO
   // ======================================================
 
-  const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   // ======================================================
-  // EXTRAI O TOKEN DA URL
+  // REDIRECIONA SE NÃO HOUVER TOKEN
   // ======================================================
 
   useEffect(() => {
-    const tokenFromUrl = searchParams.get("token");
-    if (tokenFromUrl) {
-      setToken(tokenFromUrl);
-    } else {
-      // Se não houver token, redireciona para o login
-      navigate("/login");
+    if (!token) {
+      navigate("/login", { replace: true });
     }
-  }, [searchParams, navigate]);
+  }, [token, navigate]);
 
   // ======================================================
   // MUTATION: RESETAR SENHA
@@ -91,6 +92,13 @@ const ResetPassword = () => {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Garante que o token existe antes de enviar
+    if (!token) {
+      console.error("Token não encontrado");
+      return;
+    }
+
     resetPasswordMutation.mutate({
       token,
       newPassword,

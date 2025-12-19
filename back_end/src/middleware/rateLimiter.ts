@@ -1,3 +1,27 @@
+// ======================================================
+// COMPONENTE: RateLimiterMiddleware
+// ======================================================
+//
+// ARQUIVO:
+// src/middleware/rateLimiter.ts
+//
+// DESCRIÇÃO:
+// Middleware responsável por controlar e limitar a
+// quantidade de requisições feitas à API, protegendo
+// o sistema contra abusos e ataques de força bruta.
+//
+// FUNÇÃO:
+// - Limitar requisições sensíveis, como reset de senha
+// - Controlar o tráfego geral da API
+// - Retornar mensagens padronizadas em caso de excesso
+//
+// OBJETIVOS:
+// - Prevenir ataques de força bruta e DDoS
+// - Aumentar a segurança das rotas críticas
+// - Garantir estabilidade e disponibilidade da API
+// - Centralizar políticas de rate limiting
+// ======================================================
+
 import rateLimit from "express-rate-limit";
 
 // Rate limiter específico para reset de senha

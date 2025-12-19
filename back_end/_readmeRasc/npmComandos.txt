@@ -1,0 +1,324 @@
+# ======================================================
+# DOCUMENTO: Comandos e Dependências do Projeto
+# ======================================================
+#
+# PROJETO:
+# Backend – Hamburgeria
+#
+# DESCRIÇÃO:
+# Este documento descreve todos os comandos (scripts)
+# e pacotes utilizados no projeto, explicando sua
+# finalidade, uso e objetivo dentro da aplicação.
+#
+# OBJETIVO:
+# - Facilitar manutenção e onboarding de novos devs
+# - Documentar decisões técnicas do backend
+# - Garantir clareza sobre cada dependência instalada
+# ======================================================
+
+
+# ======================================================
+# 📜 SCRIPTS (COMANDOS NPM)
+# ======================================================
+
+## npm run dev
+DESCRIÇÃO:
+Inicia o servidor em modo desenvolvimento utilizando `tsx`
+com hot reload.
+
+OBJETIVO:
+Permitir desenvolvimento rápido, com recarregamento
+automático ao alterar arquivos TypeScript.
+
+USO:
+Desenvolvimento local.
+
+
+## npm run build
+DESCRIÇÃO:
+Limpa builds antigos e compila o projeto TypeScript
+para JavaScript.
+
+OBJETIVO:
+Gerar os arquivos finais para execução em produção.
+
+USO:
+Pipeline de deploy / produção.
+
+
+## npm run start
+DESCRIÇÃO:
+Executa o servidor a partir do código já compilado.
+
+OBJETIVO:
+Rodar a aplicação em ambiente de produção.
+
+USO:
+Produção.
+
+
+## npm run lint
+DESCRIÇÃO:
+Analisa o código TypeScript com ESLint.
+
+OBJETIVO:
+Manter padrão de código e evitar erros comuns.
+
+USO:
+Qualidade de código.
+
+
+## npm run format
+DESCRIÇÃO:
+Formata automaticamente os arquivos TypeScript
+usando Prettier.
+
+OBJETIVO:
+Padronizar estilo do código.
+
+USO:
+Manutenção e organização.
+
+
+## npm run type-check
+DESCRIÇÃO:
+Executa apenas a verificação de tipos do TypeScript
+sem gerar arquivos.
+
+OBJETIVO:
+Garantir segurança de tipos antes do build.
+
+USO:
+Validação.
+
+
+## npm run prisma:generate
+DESCRIÇÃO:
+Gera o Prisma Client a partir do schema.prisma.
+
+OBJETIVO:
+Permitir acesso tipado ao banco de dados.
+
+USO:
+Após alterações no schema.
+
+
+## npm run prisma:migrate
+DESCRIÇÃO:
+Cria e aplica migrations no banco de dados
+em ambiente de desenvolvimento.
+
+OBJETIVO:
+Versionar e aplicar mudanças no banco.
+
+USO:
+Desenvolvimento.
+
+
+## npm run prisma:studio
+DESCRIÇÃO:
+Abre a interface gráfica do Prisma Studio.
+
+OBJETIVO:
+Visualizar e manipular dados do banco.
+
+USO:
+Debug e inspeção.
+
+
+## npm run prisma:seed
+DESCRIÇÃO:
+Executa o script de seed para popular o banco.
+
+OBJETIVO:
+Criar dados iniciais para testes.
+
+USO:
+Desenvolvimento.
+
+
+## npm run prisma:deploy
+DESCRIÇÃO:
+Aplica migrations já existentes em produção.
+
+OBJETIVO:
+Atualizar banco em ambiente produtivo.
+
+USO:
+Deploy.
+
+
+# ======================================================
+# 📦 DEPENDÊNCIAS (PRODUÇÃO)
+# ======================================================
+
+## express
+DESCRIÇÃO:
+Framework web para Node.js.
+
+OBJETIVO:
+Criar a API HTTP do backend.
+
+
+## cors
+DESCRIÇÃO:
+Middleware para controle de CORS.
+
+OBJETIVO:
+Permitir comunicação segura entre frontend e backend.
+
+
+## helmet
+DESCRIÇÃO:
+Middleware de segurança HTTP.
+
+OBJETIVO:
+Proteger a API contra ataques comuns.
+
+
+## dotenv
+DESCRIÇÃO:
+Carrega variáveis de ambiente do arquivo .env.
+
+OBJETIVO:
+Gerenciar configurações sensíveis.
+
+
+## bcrypt
+DESCRIÇÃO:
+Biblioteca para hash seguro de senhas.
+
+OBJETIVO:
+Garantir que senhas nunca sejam armazenadas em texto puro.
+
+
+## express-rate-limit
+DESCRIÇÃO:
+Middleware para limitar requisições por IP.
+
+OBJETIVO:
+Prevenir ataques de força bruta e abusos.
+
+
+## express-validator
+DESCRIÇÃO:
+Biblioteca para validação de dados de entrada.
+
+OBJETIVO:
+Garantir integridade e segurança das requisições.
+
+
+## pg
+DESCRIÇÃO:
+Driver PostgreSQL para Node.js.
+
+OBJETIVO:
+Conexão com o banco de dados PostgreSQL.
+
+
+## @prisma/client
+DESCRIÇÃO:
+Cliente ORM gerado pelo Prisma.
+
+OBJETIVO:
+Acesso tipado e seguro ao banco.
+
+
+## @prisma/adapter-pg
+DESCRIÇÃO:
+Adapter Prisma usando o driver pg.
+
+OBJETIVO:
+Integração eficiente com PostgreSQL.
+
+
+## resend
+DESCRIÇÃO:
+Serviço de envio de emails transacionais.
+
+OBJETIVO:
+Envio de emails de redefinição de senha.
+
+
+## nodemailer
+DESCRIÇÃO:
+Biblioteca tradicional para envio de emails.
+
+OBJETIVO:
+Suporte adicional para envio de emails (caso necessário).
+
+
+## @types/nodemailer
+DESCRIÇÃO:
+Tipagens TypeScript para nodemailer.
+
+OBJETIVO:
+Suporte a TypeScript.
+
+
+# ======================================================
+# 🛠️ DEV DEPENDENCIES (DESENVOLVIMENTO)
+# ======================================================
+
+## typescript
+DESCRIÇÃO:
+Superset do JavaScript com tipagem estática.
+
+OBJETIVO:
+Segurança, escalabilidade e legibilidade do código.
+
+
+## tsx
+DESCRIÇÃO:
+Executor de TypeScript em tempo real.
+
+OBJETIVO:
+Rodar TS sem build durante desenvolvimento.
+
+
+## prisma
+DESCRIÇÃO:
+Ferramenta ORM e gerenciador de migrations.
+
+OBJETIVO:
+Modelagem e versionamento do banco.
+
+
+## @types/express
+DESCRIÇÃO:
+Tipagens do Express para TypeScript.
+
+OBJETIVO:
+IntelliSense e segurança de tipos.
+
+
+## @types/node
+DESCRIÇÃO:
+Tipagens da API Node.js.
+
+OBJETIVO:
+Suporte completo ao ambiente Node.
+
+
+## @types/bcrypt
+DESCRIÇÃO:
+Tipagens do bcrypt.
+
+OBJETIVO:
+Segurança e autocomplete no TypeScript.
+
+
+## @types/cors
+DESCRIÇÃO:
+Tipagens do middleware CORS.
+
+OBJETIVO:
+Integração correta com TypeScript.
+
+
+## @types/pg
+DESCRIÇÃO:
+Tipagens do driver PostgreSQL.
+
+OBJETIVO:
+Segurança no acesso ao banco.

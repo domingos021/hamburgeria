@@ -1,4 +1,30 @@
 // ======================================================
+// COMPONENTE: PasswordController
+// ======================================================
+//
+// ARQUIVO:
+// src/controllers/password.controller.ts
+//
+// DESCRIÇÃO:
+// Controller responsável por todo o fluxo de recuperação
+// e redefinição de senha de usuários da aplicação.
+//
+// FUNÇÃO:
+// Gerenciar solicitações de reset de senha, incluindo:
+// - Geração segura de tokens temporários
+// - Envio de emails de redefinição
+// - Validação de token e expiração
+// - Atualização segura da nova senha no banco de dados
+//
+// OBJETIVOS:
+// - Garantir segurança no processo de recuperação de senha
+// - Evitar vazamento de informações sensíveis (email existente)
+// - Prevenir abusos com controle de requisições frequentes
+// - Centralizar regras críticas de autenticação relacionadas à senha
+// - Facilitar manutenção, auditoria e escalabilidade do sistema
+// ======================================================
+
+// ======================================================
 // IMPORTAÇÕES E DEPENDÊNCIAS
 // ======================================================
 
@@ -169,130 +195,3 @@ export async function resetPassword(request: Request, response: Response) {
     });
   }
 }
-
-/*
-import { Request, Response } from "express";
-import { prisma } from "../lib/db.js";
-import crypto from "crypto";
-import bcrypt from "bcrypt";
-import { sendPasswordResetEmail } from "../lib/mail.js";
-
-export async function forgotPassword(request: Request, response: Response) {
-  try {
-    const { email } = request.body;
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    // Segurança: não revela se o email existe
-    if (!user) {
-      // Delay artificial para dificultar timing attacks
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      return response.json({
-        message: "Se o email existir, enviaremos instruções",
-      });
-    }
-
-    // Verifica se já existe token recente (últimos 5 minutos)
-    if (user.resetTokenExpiry && user.resetTokenExpiry > new Date()) {
-      const timeLeft = Math.ceil(
-        (user.resetTokenExpiry.getTime() - Date.now()) / 1000 / 60
-      );
-      return response.status(429).json({
-        error: `Aguarde ${timeLeft} minutos antes de solicitar novo link`,
-      });
-    }
-
-    const token = crypto.randomBytes(32).toString("hex");
-    const expires = new Date(Date.now() + 15 * 60 * 1000);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        resetToken: token,
-        resetTokenExpiry: expires,
-      },
-    });
-
-    const frontendUrl = process.env["FRONTEND_URL"] || "http://localhost:5173";
-    await sendPasswordResetEmail(email, token, frontendUrl);
-
-    console.log(`✅ Email de reset enviado para: ${email}`);
-
-    return response.json({
-      message: "Email enviado com sucesso",
-    });
-  } catch (error) {
-    console.error("❌ Erro ao processar forgot-password:", error);
-    return response.status(500).json({
-      error: "Erro ao processar solicitação. Tente novamente mais tarde.",
-    });
-  }
-}
-
-export async function resetPassword(request: Request, response: Response) {
-  try {
-    const { token, newPassword, confirmPassword } = request.body;
-
-    const user = await prisma.user.findFirst({
-      where: {
-        resetToken: token,
-        resetTokenExpiry: {
-          gte: new Date(),
-        },
-      },
-    });
-
-    if (!user) {
-      return response.status(401).json({
-        error: "Token inválido ou expirado",
-      });
-    }
-
-    // Bcrypt com 12 rounds (mais seguro)
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpiry: null,
-      },
-    });
-
-    console.log(`✅ Senha redefinida para o usuário: ${user.email}`);
-
-    return response.json({
-      message: "Senha redefinida com sucesso",
-    });
-  } catch (error) {
-    console.error("❌ Erro ao resetar senha:", error);
-    return response.status(500).json({
-      error: "Erro ao processar solicitação. Tente novamente mais tarde.",
-    });
-  }
-}
-```
-
----
-
-## 📂 **Estrutura Final dos Arquivos**
-```
-back_end/
-├── src/
-│   ├── controllers/
-│   │   └── password.controller.ts  ✏️ ATUALIZADO
-│   ├── lib/
-│   │   ├── db.ts
-│   │   └── mail.ts
-│   ├── middleware/
-│   │   ├── rateLimiter.ts  ✨ NOVO
-│   │   └── validation.ts    ✨ NOVO
-│   ├── routes/
-│   │   └── password.routes.ts  ✏️ ATUALIZADO
-│   └── server.ts  ✏️ ATUALIZADO
-├── .env
-└── package.json
-*/

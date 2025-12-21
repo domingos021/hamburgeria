@@ -4,7 +4,8 @@ import cors from "cors";
 import { verifyMailConnection } from "./lib/mail.js";
 import { generalLimiter } from "./middleware/rateLimiter.js";
 import passwordRoutes from "./routes/password.routes.js";
-import authRoutes from "../src/routes/auth_routes.js"; // ← ADICIONE ESTA LINHA
+import authRoutes from "./routes/auth_routes.js";
+import testRoutes from "../src/routes/routeTeste.js"; // ← ADICIONE ESTA LINHA
 import { prisma } from "./lib/db.js";
 
 const app = express();
@@ -38,7 +39,8 @@ app.use(express.json());
 // ROTAS
 // ======================================================
 app.use(passwordRoutes);
-app.use(authRoutes); // ← ADICIONE ESTA LINHA
+app.use(authRoutes);
+app.use("/api/test", testRoutes); // ← ADICIONE ESTA LINHA
 
 // ======================================================
 // VERIFICAÇÃO DE EMAIL

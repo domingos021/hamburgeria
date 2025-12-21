@@ -40,14 +40,14 @@ datasource db {
 // 👤 TABELA: USER
 // ===============================================
 model User {
-  id       String  @id @default(uuid())
-  email    String  @unique
-  name     String?
-  password String
-  // Adicione estes campos:
+  id               String    @id @default(uuid())
+  email            String    @unique
+  name             String?
+  password         String
   resetToken       String?
   resetTokenExpiry DateTime?
-  cep      String
+  cep              String
+  telefone         String    @unique
 }
 
 /*

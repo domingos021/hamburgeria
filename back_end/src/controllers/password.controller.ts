@@ -11,6 +11,7 @@
 //
 // FUNÇÃO:
 // Gerenciar solicitações de reset de senha, incluindo:
+// - Validação de entrada com Zod
 // - Geração segura de tokens temporários
 // - Envio de emails de redefinição
 // - Validação de token e expiração
@@ -18,6 +19,7 @@
 //
 // OBJETIVOS:
 // - Garantir segurança no processo de recuperação de senha
+// - Validar dados antes de processar
 // - Evitar vazamento de informações sensíveis (email existente)
 // - Prevenir abusos com controle de requisições frequentes
 // - Centralizar regras críticas de autenticação relacionadas à senha
@@ -43,15 +45,30 @@ import bcrypt from "bcrypt";
 // Função responsável por enviar o email de redefinição de senha
 import { sendPasswordResetEmail } from "../lib/mail.js";
 
+// Schemas de validação Zod
+import {
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  type ForgotPasswordInput,
+  type ResetPasswordInput,
+} from "../segurança_zod/segurança_zodschema.js";
+
+// Zod para tratamento de erros de validação
+import { ZodError } from "zod";
+
 // ======================================================
 // CONTROLLER: SOLICITAÇÃO DE RESET DE SENHA
 // ======================================================
 export async function forgotPassword(request: Request, response: Response) {
   try {
     // --------------------------------------------------
-    // EXTRAÇÃO DE DADOS DO BODY
+    // VALIDAÇÃO DE ENTRADA COM ZOD
     // --------------------------------------------------
-    const { email } = request.body;
+    const validatedData: ForgotPasswordInput = forgotPasswordSchema.parse(
+      request.body
+    );
+
+    const { email } = validatedData;
 
     // --------------------------------------------------
     // BUSCA USUÁRIO PELO EMAIL
@@ -75,7 +92,7 @@ export async function forgotPassword(request: Request, response: Response) {
     // --------------------------------------------------
     // BLOQUEIO DE SOLICITAÇÕES FREQUENTES
     // --------------------------------------------------
-    // Verifica se já existe um token válido (últimos 5 minutos)
+    // Verifica se já existe um token válido (últimos 15 minutos)
     if (user.resetTokenExpiry && user.resetTokenExpiry > new Date()) {
       const timeLeft = Math.ceil(
         (user.resetTokenExpiry.getTime() - Date.now()) / 1000 / 60
@@ -120,6 +137,19 @@ export async function forgotPassword(request: Request, response: Response) {
     });
   } catch (error) {
     // --------------------------------------------------
+    // TRATAMENTO DE ERROS DE VALIDAÇÃO ZOD
+    // --------------------------------------------------
+    if (error instanceof ZodError) {
+      return response.status(400).json({
+        error: "Dados inválidos",
+        details: error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+    }
+
+    // --------------------------------------------------
     // TRATAMENTO DE ERRO GLOBAL
     // --------------------------------------------------
     console.error("❌ Erro ao processar forgot-password:", error);
@@ -136,9 +166,13 @@ export async function forgotPassword(request: Request, response: Response) {
 export async function resetPassword(request: Request, response: Response) {
   try {
     // --------------------------------------------------
-    // EXTRAÇÃO DE DADOS DO BODY
+    // VALIDAÇÃO DE ENTRADA COM ZOD
     // --------------------------------------------------
-    const { token, newPassword, confirmPassword } = request.body;
+    const validatedData: ResetPasswordInput = resetPasswordSchema.parse(
+      request.body
+    );
+
+    const { token, newPassword } = validatedData;
 
     // --------------------------------------------------
     // BUSCA USUÁRIO PELO TOKEN VÁLIDO
@@ -185,6 +219,19 @@ export async function resetPassword(request: Request, response: Response) {
       message: "Senha redefinida com sucesso",
     });
   } catch (error) {
+    // --------------------------------------------------
+    // TRATAMENTO DE ERROS DE VALIDAÇÃO ZOD
+    // --------------------------------------------------
+    if (error instanceof ZodError) {
+      return response.status(400).json({
+        error: "Dados inválidos",
+        details: error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+    }
+
     // --------------------------------------------------
     // TRATAMENTO DE ERRO GLOBAL
     // --------------------------------------------------

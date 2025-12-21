@@ -56,7 +56,7 @@ export const validateForgotPassword = [
       });
     }
 
-    next();
+    return next();
   },
 ];
 
@@ -99,6 +99,6 @@ export const validateResetPassword = [
       });
     }
 
-    next();
+    return next();
   },
 ];

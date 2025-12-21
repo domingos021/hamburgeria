@@ -10,11 +10,27 @@ import Input from "../inputs/input";
 import Button from "../button_dinamic/button";
 
 // ======================================================
+// TIPOS: RESPOSTA DE ERRO DO BACKEND COM ZOD
+// ======================================================
+import type {
+  ApiErrorResponse,
+  ApiSuccessResponse,
+  CustomError,
+} from "../../types/zod_interfaces/interfaces";
+
+// ======================================================
 // FUNÇÃO: REQUISIÇÃO DE LOGIN (API)
 // ======================================================
 
 // Responsável por enviar as credenciais do usuário
 // para o backend e retornar a resposta da autenticação
+/*
+  Realiza a comunicação com o backend enviando
+  as credenciais de login e recebendo a resposta
+  de autenticação pela rota:
+  POST http://localhost:3000/login
+*/
+
 const loginUser = async (credentials: { email: string; password: string }) => {
   const response = await fetch("http://localhost:3000/login", {
     method: "POST",
@@ -29,12 +45,21 @@ const loginUser = async (credentials: { email: string; password: string }) => {
 
   // Verifica se a resposta da API foi bem-sucedida
   if (!response.ok) {
-    // Lança o erro retornado pelo backend ou mensagem padrão
-    throw new Error(data.error || "Falha no login");
+    // Converte para tipo de erro
+    const errorData = data as ApiErrorResponse;
+
+    // Cria um erro customizado que inclui os detalhes de validação do Zod
+    const error: CustomError = new Error(errorData.error || "Falha no login");
+
+    // Anexa os detalhes dos erros de validação ao objeto de erro
+    error.details = errorData.details;
+
+    // Lança o erro com os detalhes para ser capturado pelo onError
+    throw error;
   }
 
   // Retorna os dados da resposta (ex: token, usuário)
-  return data;
+  return data as ApiSuccessResponse;
 };
 
 // ======================================================
@@ -77,7 +102,7 @@ const Login = () => {
     // Executado quando ocorre erro na autenticação
     onError: (error) => {
       console.error("Erro no login:", error);
-      // Exibir mensagem de erro para o usuário
+      // Os detalhes do erro agora incluem informações específicas do Zod
     },
   });
 
@@ -94,6 +119,26 @@ const Login = () => {
   };
 
   // ======================================================
+  // HELPER: BUSCA ERRO ESPECÍFICO DE UM CAMPO
+  // ======================================================
+
+  // Função auxiliar para verificar se há erro de validação
+  // em um campo específico e retornar a mensagem
+  const getFieldError = (fieldName: string): string | undefined => {
+    const error = loginMutation.error as CustomError;
+    return error?.details?.find((d) => d.field === fieldName)?.message;
+  };
+
+  // ======================================================
+  // HELPER: OBTÉM DETALHES DE ERRO DO ZOD
+  // ======================================================
+
+  // Extrai os detalhes de validação do erro, se existirem
+  const errorDetails = loginMutation.isError
+    ? (loginMutation.error as CustomError).details
+    : undefined;
+
+  // ======================================================
   // RENDERIZAÇÃO DO COMPONENTE
   // ======================================================
 
@@ -105,45 +150,104 @@ const Login = () => {
       >
         {/* Logo com redirecionamento para a home */}
         <Link to="/">
-          <img className="mb-4" src="./logo.png" alt="Logo da marca" />
+          <img className="mx-auto mb-4" src="./logo.png" alt="Logo da marca" />
         </Link>
 
-        {/* Campo de email */}
-        <Input
-          placeholder="Email"
-          type="text"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={loginMutation.isPending}
-        />
+        <div className="mb-4 flex flex-col gap-2">
+          {/* ============================================ */}
+          {/* CAMPO: EMAIL COM VALIDAÇÃO VISUAL           */}
+          {/* ============================================ */}
+          <div className="flex flex-col gap-1">
+            <Input
+              placeholder="Email"
+              type="text"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loginMutation.isPending}
+              // Adiciona borda vermelha se houver erro de validação
+              className={getFieldError("email") ? "border-red-500" : ""}
+            />
+            {/* Exibe mensagem de erro específica do campo email */}
+            {getFieldError("email") && (
+              <span className="text-xs text-red-500">
+                {getFieldError("email")}
+              </span>
+            )}
+          </div>
 
-        {/* Campo de senha */}
-        <Input
-          placeholder="Senha"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={loginMutation.isPending}
-        />
+          {/* ============================================ */}
+          {/* CAMPO: SENHA COM VALIDAÇÃO VISUAL           */}
+          {/* ============================================ */}
+          <div className="flex flex-col gap-1">
+            <Input
+              placeholder="Senha"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loginMutation.isPending}
+              // Adiciona borda vermelha se houver erro de validação
+              className={getFieldError("password") ? "border-red-500" : ""}
+            />
+            {/* Exibe mensagem de erro específica do campo senha */}
+            {getFieldError("password") && (
+              <span className="text-xs text-red-500">
+                {getFieldError("password")}
+              </span>
+            )}
+          </div>
+        </div>
 
-        {/* Exibe mensagem de erro caso a autenticação falhe */}
-        {loginMutation.isError && (
-          <p className="text-sm text-red-500">{loginMutation.error.message}</p>
+        {/* ================================================ */}
+        {/* MENSAGEM: ERRO GERAL (SEM DETALHES DE VALIDAÇÃO) */}
+        {/* ================================================ */}
+        {/* Exibe apenas quando há erro MAS não há detalhes do Zod */}
+        {/* (ex: credenciais inválidas, servidor offline, etc) */}
+        {loginMutation.isError && !errorDetails && (
+          <div className="flex w-full gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
+            <span className="shrink-0 text-red-500">⚠️</span>
+            <p className="text-red-700">{loginMutation.error.message}</p>
+          </div>
         )}
 
-        {/* Botão de envio do formulário */}
+        {/* ================================================ */}
+        {/* MENSAGEM: LISTA DE ERROS DE VALIDAÇÃO (MÚLTIPLOS) */}
+        {/* ================================================ */}
+        {/* Exibe lista completa quando há mais de um erro de validação */}
+        {errorDetails && errorDetails.length > 1 && (
+          <div className="flex w-full gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
+            <span className="shrink-0 text-red-500">⚠️</span>
+            <div className="flex flex-col gap-1">
+              <p className="font-semibold text-red-700">
+                Corrija os seguintes erros:
+              </p>
+              <ul className="list-inside list-disc text-red-600">
+                {errorDetails.map((detail, index) => (
+                  <li key={index}>{detail.message}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* ================================================ */}
+        {/* BOTÃO: SUBMIT DO FORMULÁRIO                      */}
+        {/* ================================================ */}
         <Button
           title={loginMutation.isPending ? "Carregando..." : "Login"}
           type="submit"
           disabled={loginMutation.isPending}
         />
 
-        {/* Botão com link para recuperação de senha */}
+        {/* ================================================ */}
+        {/* BOTÃO: RECUPERAÇÃO DE SENHA                      */}
+        {/* ================================================ */}
         <Link to="/forgot-password" className="w-full">
           <Button title="Esqueci minha senha" variantButton="outline" />
         </Link>
 
-        {/* Link para página de cadastro */}
+        {/* ================================================ */}
+        {/* LINK: PÁGINA DE CADASTRO                         */}
+        {/* ================================================ */}
         <Link to="/register" className="w-full">
           <Button title="Não tenho uma conta" variantButton="outline" />
         </Link>

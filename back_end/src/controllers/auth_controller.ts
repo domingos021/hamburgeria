@@ -20,12 +20,15 @@
 // - Validar dados de entrada com Zod antes de processar
 // - Centralizar regras de autenticação em um único controller
 // - Facilitar manutenção, testes e escalabilidade do sistema
+//
+// ARQUITETURA REFATORADA:
+// - Controller: Recebe requisições HTTP e retorna respostas
+// - Service: Contém toda a lógica de negócio
+// - Repository: Gerencia acesso ao banco de dados
+// - Utils: Funções auxiliares reutilizáveis (JWT, etc)
 // ======================================================
 
 import { Request, Response } from "express";
-import bcrypt from "bcrypt";
-import jwt, { SignOptions } from "jsonwebtoken";
-import { prisma } from "../lib/db.js";
 import { ZodError } from "zod";
 
 // Importação dos schemas de validação
@@ -38,44 +41,8 @@ import {
   type UpdatePasswordInput,
 } from "../segurança_zod/auntentication_schema.js";
 
-// ======================================================
-// CONFIGURAÇÃO DO JWT
-// ======================================================
-// JWT (JSON Web Token) é usado para autenticar usuários
-// sem precisar enviar email e senha a cada requisição.
-
-// JWT_SECRET:
-// - Chave secreta usada para assinar o token
-// - Deve ser **mantida em segredo** e nunca exposta publicamente
-// - Em produção, sempre use uma chave forte via variáveis de ambiente
-const JWT_SECRET =
-  process.env["JWT_SECRET"] ?? "your-secret-key-change-in-production";
-
-// JWT_EXPIRES_IN:
-// - Define o tempo de validade do token
-// - Pode ser em segundos, minutos, horas ou dias (ex: "1d", "12h")
-// - O token expira automaticamente após esse período
-// - A configuração também pode ser obtida via variável de ambiente
-const JWT_EXPIRES_IN = (process.env["JWT_EXPIRES_IN"] ?? "1d") as Exclude<
-  SignOptions["expiresIn"],
-  undefined
->;
-
-// ======================================================
-// FUNÇÃO AUXILIAR: GERAÇÃO DE TOKEN JWT
-// ======================================================
-function generateToken(userId: string, email: string): string {
-  return jwt.sign(
-    {
-      userId,
-      email,
-    },
-    JWT_SECRET,
-    {
-      expiresIn: JWT_EXPIRES_IN, // agora o tipo é number | StringValue (sem undefined)
-    }
-  );
-}
+// Importação dos services (lógica de negócio)
+import * as authService from "../services/auth.service.js";
 
 // ======================================================
 // FUNÇÃO AUXILIAR: TRATAMENTO DE ERROS DO ZOD
@@ -89,6 +56,32 @@ function handleZodError(error: ZodError, response: Response) {
       field: issue.path.join("."),
       message: issue.message,
     })),
+  });
+}
+
+// ======================================================
+// FUNÇÃO AUXILIAR: TRATAMENTO DE ERROS DO SERVICE
+// ======================================================
+// Mapeia os erros lançados pelos services para respostas HTTP adequadas.
+// Centraliza o tratamento de erros de negócio.
+function handleServiceError(error: Error, response: Response) {
+  // Erros conhecidos da lógica de negócio
+  if (error.message === "EMAIL_ALREADY_EXISTS") {
+    return response.status(409).json({
+      error: "Email já cadastrado, por favor use outro Email",
+    });
+  }
+
+  if (error.message === "INVALID_CREDENTIALS") {
+    return response.status(401).json({
+      error: "Credenciais inválidas",
+    });
+  }
+
+  // Erro genérico (não esperado)
+  console.error("❌ Erro inesperado:", error);
+  return response.status(500).json({
+    error: "Erro interno do servidor",
   });
 }
 
@@ -108,117 +101,28 @@ export async function register(request: Request, response: Response) {
     // para o processo de registro do usuário.
     const { email, password, name, cep, telefone } = validatedData;
 
-    console.log("📝 Tentando registrar:", email);
-
     // ======================================================
-    // PASSO Nº 0, VERIFICA SE OS RESPECTIVOS CAMPOS ESTÃO VAZIOS
+    // PASSO Nº 2 — DELEGAÇÃO PARA O SERVICE
     // ======================================================
-    console.log("📝 Tentando registrar:", email);
-
-    // ======================================================
-    // PASSO Nº 1.1 — VERIFICAÇÃO DEFENSIVA EXTRA (REDUNDANTE)
-    // ======================================================
-    // ⚠️ IMPORTANTE:
-    // Esta verificação é tecnicamente REDUNDANTE, pois o Zod já garante
-    // que esses campos existam e sejam válidos.
-    //
-    // Ela foi mantida propositalmente como uma camada defensiva adicional
-    // para maior clareza didática e proteção contra alterações futuras
-    // no schema de validação.
-    //
-    // Em aplicações profissionais, normalmente confia-se apenas no Zod.
-    if (!name || !email || !password || !cep || !telefone) {
-      return response.status(400).json({
-        message: "Todos os campos devem estar preenchidos",
-      });
-    }
-
-    // ======================================================
-    // PASSO Nº 2 — VERIFICAÇÃO DE USUÁRIO JÁ EXISTENTE pelo email
-    // ======================================================
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email },
-    });
-    //se o email ja existe retorna erro
-    if (existingUser) {
-      return response.status(409).json({
-        error: "Email já cadastrado, por favou use outro Email",
-      });
-    }
-
-    // ======================================================
-    // PASSO Nº 3 — GERAÇÃO DO HASH DA SENHA
-    // ======================================================
-
-    // Gera um hash seguro da senha informada pelo usuário antes de salvar no banco.
-    // O bcrypt aplica múltiplas rodadas de processamento para dificultar ataques de força bruta.
-    const hashedPassword = await bcrypt.hash(
-      password, // Senha em texto puro enviada pelo usuário no cadastro
-      12 // Número de rounds (custo): 12 é um bom equilíbrio entre segurança e performance
-    );
-
-    console.log("🔐 Senha hasheada com sucesso");
-
-    // ======================================================
-    // PASSO Nº 4 — CRIAÇÃO DO NOVO USUÁRIO NO BANCO DE DADOS
-
-    // USER=> tabela no banco de dados
-    // newUser => criação do novo usuario para o banco de dados
-    //CADASTRANDO AS INFORMAÇÃO NO BANCO DE DADOS
-    // ======================================================
-    const newUser = await prisma.user.create({
-      data: {
-        name: name ?? null, // Converte undefined para null
-        email,
-        password: hashedPassword, //criptografa o password
-        cep,
-        telefone,
-      },
+    // O controller apenas orquestra: valida dados e chama o service.
+    // Toda a lógica de negócio (verificação de email, hash, criação)
+    // está no service, mantendo o controller limpo e focado.
+    const result = await authService.registerUser({
+      name,
+      email,
+      password,
+      cep,
+      telefone,
     });
 
-    console.log("✅ Usuário criado:", newUser.email);
-
     // ======================================================
-    // PASSO Nº 5 — GERAÇÃO DO TOKEN JWT
-    // ======================================================
-    // O token JWT serve para:
-    // - Autenticar o usuário após o login ou cadastro
-    // - Provar que o usuário está autorizado a acessar rotas protegidas
-    // - Evitar que o usuário precise enviar email e senha a cada requisição
-    // - Transportar de forma segura informações básicas do usuário (ex: id e email)
-    // - Permitir o controle de expiração da sessão (ex: token válido por X tempo)
-    //
-    // Esse token será enviado ao frontend e armazenado (ex: localStorage ou cookies)
-    // Em cada requisição protegida, o frontend envia o token no header Authorization
-    // Exemplo: Authorization: Bearer <token>
-    //
-    const token = generateToken(newUser.id, newUser.email);
-
-    console.log("🔑 Token JWT gerado com sucesso");
-
-    // ======================================================
-    // PASSO Nº 6 — REMOÇÃO DA SENHA DA RESPOSTA
-    // ======================================================
-    // Aqui estamos criando um objeto chamado "userWithoutPassword":
-    // - Estamos usando destructuring para separar a senha (password)
-    // - O "_" indica que estamos ignorando esse valor (não vamos usá-lo)
-    // - O operador "..." copia o restante das propriedades do usuário
-    // Resultado: um objeto com todos os dados do usuário, exceto a senha
-    //
-    // Isso é importante para:
-    // - Evitar expor a senha mesmo que seja hashada
-    // - Garantir que a resposta enviada ao frontend não contenha dados sensíveis
-    //
-    const { password: _, ...userWithoutPassword } = newUser;
-
-    // ======================================================
-    // PASSO Nº 7 — RETORNO DA RESPOSTA DE SUCESSO
+    // PASSO Nº 3 — RETORNO DA RESPOSTA DE SUCESSO
     // ======================================================
     return response.status(201).json({
       success: true,
       message: "Usuário criado com sucesso",
-      user: userWithoutPassword,
-      token, // Token JWT para autenticação imediata
+      user: result.user,
+      token: result.token, // Token JWT para autenticação imediata
     });
   } catch (error) {
     // ======================================================
@@ -229,10 +133,16 @@ export async function register(request: Request, response: Response) {
     }
 
     // ======================================================
+    // TRATAMENTO DE ERROS DE NEGÓCIO (SERVICE)
+    // ======================================================
+    if (error instanceof Error) {
+      return handleServiceError(error, response);
+    }
+
+    // ======================================================
     // TRATAMENTO DE ERROS INESPERADOS
     // ======================================================
     console.error("❌ Erro no registro:", error);
-
     return response.status(500).json({
       error: "Erro interno do servidor",
     });
@@ -250,71 +160,23 @@ export async function login(request: Request, response: Response) {
     const validatedData: LoginInput = loginSchema.parse(request.body);
     const { email, password } = validatedData;
 
-    console.log("🔍 Tentando login:", email);
-
     // ======================================================
-    // PASSO Nº 2 — BUSCA DO USUÁRIO NO BANCO DE DADOS
+    // PASSO Nº 2 — DELEGAÇÃO PARA O SERVICE
     // ======================================================
-    const user = await prisma.user.findFirst({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        password: true,
-        name: true,
-        cep: true,
-        telefone: true,
-      },
+    // O service contém toda a lógica de busca, validação de senha,
+    // e geração de token. O controller apenas orquestra.
+    const result = await authService.loginUser({
+      email,
+      password,
     });
 
-    console.log("📦 Usuário encontrado:", user ? "Sim" : "Não");
-
     // ======================================================
-    // PASSO Nº 3 — VERIFICAÇÃO DA EXISTÊNCIA DO USUÁRIO
-    // ======================================================
-    if (!user) {
-      return response.status(401).json({
-        error: "Credenciais inválidas",
-      });
-    }
-
-    // ======================================================
-    // PASSO Nº 4 — COMPARAÇÃO DA SENHA COM O HASH
-    // ======================================================
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    console.log("🔐 Senha válida:", isPasswordValid ? "Sim" : "Não");
-
-    // ======================================================
-    // PASSO Nº 5 — VALIDAÇÃO DO RESULTADO
-    // ======================================================
-    if (!isPasswordValid) {
-      return response.status(401).json({
-        error: "Credenciais inválidas",
-      });
-    }
-
-    // ======================================================
-    // PASSO Nº 6 — GERAÇÃO DO TOKEN JWT
-    // ======================================================
-    const token = generateToken(user.id, user.email);
-
-    console.log("🔑 Token JWT gerado com sucesso");
-
-    // ======================================================
-    // PASSO Nº 7 — REMOÇÃO DA SENHA DA RESPOSTA
-    // ======================================================
-    const { password: _, ...userWithoutPassword } = user;
-
-    console.log("✅ Login bem-sucedido");
-
-    // ======================================================
-    // PASSO Nº 8 — RETORNO DA RESPOSTA DE SUCESSO
+    // PASSO Nº 3 — RETORNO DA RESPOSTA DE SUCESSO
     // ======================================================
     return response.status(200).json({
       success: true,
-      user: userWithoutPassword,
-      token, // Token JWT para autenticação nas próximas requisições
+      user: result.user,
+      token: result.token, // Token JWT para autenticação nas próximas requisições
     });
   } catch (error) {
     // ======================================================
@@ -325,10 +187,16 @@ export async function login(request: Request, response: Response) {
     }
 
     // ======================================================
+    // TRATAMENTO DE ERROS DE NEGÓCIO (SERVICE)
+    // ======================================================
+    if (error instanceof Error) {
+      return handleServiceError(error, response);
+    }
+
+    // ======================================================
     // TRATAMENTO DE ERROS INESPERADOS
     // ======================================================
     console.error("❌ Erro no login:", error);
-
     return response.status(500).json({
       error: "Erro interno do servidor",
     });
@@ -340,15 +208,11 @@ export async function login(request: Request, response: Response) {
 // ======================================================
 export async function listUsers(_request: Request, response: Response) {
   try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        cep: true,
-        telefone: true,
-      },
-    });
+    // ======================================================
+    // DELEGAÇÃO PARA O SERVICE
+    // ======================================================
+    // Busca todos os usuários através do service.
+    const users = await authService.getAllUsers();
 
     return response.json({
       total: users.length,
@@ -376,24 +240,18 @@ export async function updatePassword(request: Request, response: Response) {
     const { email, newPassword } = validatedData;
 
     // ======================================================
-    // GERAÇÃO DO HASH DA NOVA SENHA
+    // DELEGAÇÃO PARA O SERVICE
     // ======================================================
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-    // ======================================================
-    // ATUALIZAÇÃO DA SENHA NO BANCO
-    // ======================================================
-    const user = await prisma.user.update({
-      where: { email },
-      data: { password: hashedPassword },
+    // O service cuida do hash e da atualização no banco.
+    const result = await authService.updatePassword({
+      email,
+      newPassword,
     });
-
-    console.log("✅ Senha atualizada para:", email);
 
     return response.json({
       success: true,
       message: "Senha atualizada com sucesso",
-      email: user.email,
+      email: result.email,
     });
   } catch (error) {
     // ======================================================
@@ -412,3 +270,27 @@ export async function updatePassword(request: Request, response: Response) {
     });
   }
 }
+
+/*
+```
+
+---
+
+## **📊 Resumo da Refatoração**
+
+### **Estrutura Criada:**
+```
+src/
+├── controllers/
+│   └── auth.controller.ts      ✅ Refatorado (apenas orquestração)
+├── services/
+│   └── auth.service.ts         ✅ NOVO (lógica de negócio)
+├── repositories/
+│   └── user.repository.ts      ✅ NOVO (acesso ao banco)
+├── utils/
+│   └── jwt.util.ts             ✅ NOVO (utilitário JWT)
+└── segurança_zod/
+    └── auntentication_schema.ts ✅ Mantido (validação)
+
+
+  */

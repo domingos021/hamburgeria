@@ -44,6 +44,12 @@ const Register = () => {
     e.preventDefault(); // Evita recarregar a página
 
     try {
+      // Validação: senhas iguais
+      if (senha !== confirmarSenha) {
+        setError("As senhas não coincidem. corrija");
+        setSuccessMessage(""); // limpa mensagem de sucesso
+        return; // interrompe o envio
+      }
       // Exibe valores para depuração (ou remova em produção)
       console.log({ name, email, senha, confirmarSenha, cep, telefone });
       // Aqui você faria a requisição para o backend (rota do registro)
@@ -108,6 +114,9 @@ const Register = () => {
           resetForm(); // limpa o formulário em caso de sucesso
           setError(""); // limpa erro
           setSuccessMessage("Usuário cadastrado com sucesso");
+          break;
+        case 500:
+          setError("tente mais tarde");
           break;
         default:
           setError("Ocorreu um erro inesperado. Tente novamente.");

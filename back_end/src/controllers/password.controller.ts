@@ -24,6 +24,11 @@
 // - Prevenir abusos com controle de requisições frequentes
 // - Centralizar regras críticas de autenticação relacionadas à senha
 // - Facilitar manutenção, auditoria e escalabilidade do sistema
+//
+// ARQUITETURA REFATORADA:
+// - Controller: Recebe requisições HTTP e retorna respostas
+// - Service: Contém toda a lógica de negócio
+// - Repository: Gerencia acesso ao banco de dados
 // ======================================================
 
 // ======================================================
@@ -32,18 +37,6 @@
 
 // Tipos do Express para tipar request e response
 import { Request, Response } from "express";
-
-// Instância do Prisma para acesso ao banco de dados
-import { prisma } from "../lib/db.js";
-
-// Crypto: usado para gerar tokens seguros
-import crypto from "crypto";
-
-// Bcrypt: usado para criptografar senhas
-import bcrypt from "bcrypt";
-
-// Função responsável por enviar o email de redefinição de senha
-import { sendPasswordResetEmail } from "../lib/mail.js";
 
 // Schemas de validação Zod
 import {
@@ -55,6 +48,48 @@ import {
 
 // Zod para tratamento de erros de validação
 import { ZodError } from "zod";
+
+// Importação dos services (lógica de negócio)
+import * as passwordService from "../services/password.service.js";
+
+// ======================================================
+// FUNÇÃO AUXILIAR: TRATAMENTO DE ERROS DO ZOD
+// ======================================================
+function handleZodError(error: ZodError, response: Response) {
+  return response.status(400).json({
+    error: "Dados inválidos",
+    details: error.issues.map((issue) => ({
+      field: issue.path.join("."),
+      message: issue.message,
+    })),
+  });
+}
+
+// ======================================================
+// FUNÇÃO AUXILIAR: TRATAMENTO DE ERROS DO SERVICE
+// ======================================================
+function handleServiceError(error: Error, response: Response) {
+  // Erro de rate limit (solicitações muito frequentes)
+  if (error.message.startsWith("RATE_LIMIT:")) {
+    const timeLeft = error.message.split(":")[1];
+    return response.status(429).json({
+      error: `Aguarde ${timeLeft} minutos antes de solicitar novo link`,
+    });
+  }
+
+  // Token inválido ou expirado
+  if (error.message === "INVALID_TOKEN") {
+    return response.status(401).json({
+      error: "Token inválido ou expirado",
+    });
+  }
+
+  // Erro genérico (não esperado)
+  console.error("❌ Erro inesperado:", error);
+  return response.status(500).json({
+    error: "Erro ao processar solicitação. Tente novamente mais tarde.",
+  });
+}
 
 // ======================================================
 // CONTROLLER: SOLICITAÇÃO DE RESET DE SENHA
@@ -68,92 +103,35 @@ export async function forgotPassword(request: Request, response: Response) {
       request.body
     );
 
-    const { email } = validatedData;
-
     // --------------------------------------------------
-    // BUSCA USUÁRIO PELO EMAIL
+    // DELEGAÇÃO PARA O SERVICE
     // --------------------------------------------------
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    // --------------------------------------------------
-    // SEGURANÇA: NÃO REVELA SE O EMAIL EXISTE
-    // --------------------------------------------------
-    if (!user) {
-      // Delay artificial para dificultar ataques de timing
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      return response.json({
-        message: "Se o email existir, enviaremos instruções",
-      });
-    }
-
-    // --------------------------------------------------
-    // BLOQUEIO DE SOLICITAÇÕES FREQUENTES
-    // --------------------------------------------------
-    // Verifica se já existe um token válido (últimos 15 minutos)
-    if (user.resetTokenExpiry && user.resetTokenExpiry > new Date()) {
-      const timeLeft = Math.ceil(
-        (user.resetTokenExpiry.getTime() - Date.now()) / 1000 / 60
-      );
-
-      return response.status(429).json({
-        error: `Aguarde ${timeLeft} minutos antes de solicitar novo link`,
-      });
-    }
-
-    // --------------------------------------------------
-    // GERAÇÃO DO TOKEN DE RESET
-    // --------------------------------------------------
-    // Token aleatório e seguro
-    const token = crypto.randomBytes(32).toString("hex");
-
-    // Tempo de expiração: 15 minutos
-    const expires = new Date(Date.now() + 15 * 60 * 1000);
-
-    // --------------------------------------------------
-    // ATUALIZA USUÁRIO COM TOKEN E EXPIRAÇÃO
-    // --------------------------------------------------
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        resetToken: token,
-        resetTokenExpiry: expires,
-      },
-    });
-
-    // --------------------------------------------------
-    // ENVIO DO EMAIL DE RESET
-    // --------------------------------------------------
-    const frontendUrl = process.env["FRONTEND_URL"] || "http://localhost:5173";
-
-    await sendPasswordResetEmail(email, token, frontendUrl);
-
-    console.log(`✅ Email de reset enviado para: ${email}`);
+    // O controller apenas orquestra: valida dados e chama o service.
+    // Toda a lógica de negócio está no service.
+    const result = await passwordService.requestPasswordReset(validatedData);
 
     return response.json({
-      message: "Email enviado com sucesso",
+      message: result.message,
     });
   } catch (error) {
     // --------------------------------------------------
     // TRATAMENTO DE ERROS DE VALIDAÇÃO ZOD
     // --------------------------------------------------
     if (error instanceof ZodError) {
-      return response.status(400).json({
-        error: "Dados inválidos",
-        details: error.issues.map((issue) => ({
-          field: issue.path.join("."),
-          message: issue.message,
-        })),
-      });
+      return handleZodError(error, response);
+    }
+
+    // --------------------------------------------------
+    // TRATAMENTO DE ERROS DE NEGÓCIO (SERVICE)
+    // --------------------------------------------------
+    if (error instanceof Error) {
+      return handleServiceError(error, response);
     }
 
     // --------------------------------------------------
     // TRATAMENTO DE ERRO GLOBAL
     // --------------------------------------------------
     console.error("❌ Erro ao processar forgot-password:", error);
-
     return response.status(500).json({
       error: "Erro ao processar solicitação. Tente novamente mais tarde.",
     });
@@ -172,73 +150,62 @@ export async function resetPassword(request: Request, response: Response) {
       request.body
     );
 
-    const { token, newPassword } = validatedData;
-
     // --------------------------------------------------
-    // BUSCA USUÁRIO PELO TOKEN VÁLIDO
+    // DELEGAÇÃO PARA O SERVICE
     // --------------------------------------------------
-    const user = await prisma.user.findFirst({
-      where: {
-        resetToken: token,
-        resetTokenExpiry: {
-          gte: new Date(), // garante que o token não expirou
-        },
-      },
-    });
-
-    // --------------------------------------------------
-    // VALIDA TOKEN
-    // --------------------------------------------------
-    if (!user) {
-      return response.status(401).json({
-        error: "Token inválido ou expirado",
-      });
-    }
-
-    // --------------------------------------------------
-    // CRIPTOGRAFIA DA NOVA SENHA
-    // --------------------------------------------------
-    // Bcrypt com 12 rounds (bom equilíbrio entre segurança e performance)
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-    // --------------------------------------------------
-    // ATUALIZA SENHA E LIMPA TOKEN
-    // --------------------------------------------------
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpiry: null,
-      },
-    });
-
-    console.log(`✅ Senha redefinida para o usuário: ${user.email}`);
+    // O service contém toda a lógica de validação de token,
+    // criptografia e atualização no banco.
+    const result = await passwordService.resetPasswordWithToken(validatedData);
 
     return response.json({
-      message: "Senha redefinida com sucesso",
+      message: result.message,
     });
   } catch (error) {
     // --------------------------------------------------
     // TRATAMENTO DE ERROS DE VALIDAÇÃO ZOD
     // --------------------------------------------------
     if (error instanceof ZodError) {
-      return response.status(400).json({
-        error: "Dados inválidos",
-        details: error.issues.map((issue) => ({
-          field: issue.path.join("."),
-          message: issue.message,
-        })),
-      });
+      return handleZodError(error, response);
+    }
+
+    // --------------------------------------------------
+    // TRATAMENTO DE ERROS DE NEGÓCIO (SERVICE)
+    // --------------------------------------------------
+    if (error instanceof Error) {
+      return handleServiceError(error, response);
     }
 
     // --------------------------------------------------
     // TRATAMENTO DE ERRO GLOBAL
     // --------------------------------------------------
     console.error("❌ Erro ao resetar senha:", error);
-
     return response.status(500).json({
       error: "Erro ao processar solicitação. Tente novamente mais tarde.",
     });
   }
 }
+
+/*
+```
+
+---
+
+## **📊 Estrutura Completa Agora**
+```
+src/
+├── controllers/
+│   ├── auth.controller.ts           ✅ Refatorado
+│   └── password.controller.ts       ✅ Refatorado
+├── services/
+│   ├── auth.service.ts              ✅ Criado
+│   └── password.service.ts          ✅ Criado
+├── repositories/
+│   ├── user.repository.ts           ✅ Criado
+│   └── password.repository.ts       ✅ Criado
+├── utils/
+│   └── jwt.util.ts                  ✅ Criado
+└── segurança_zod/
+    ├── auntentication_schema.ts     ✅ Mantido
+    └── segurança_zodschema.ts       ✅ Mantido
+
+    */

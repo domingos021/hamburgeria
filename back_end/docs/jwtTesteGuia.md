@@ -600,3 +600,14 @@ Usar apenas em desenvolvimento rápido ou testes
 3. Gere o Prisma Client
    npx prisma generate
    \*/
+
+// verificar erros de typescript:npm run type-check
+
+{
+"cep": "70648015",
+"confirmarSenha": "melissa7?",
+"email": "melissacarvalho@gmailcom",
+"name": "Melissa carvalho Jovete",
+"senha": "Melissa7?",
+"telefone": "61984615326"
+}

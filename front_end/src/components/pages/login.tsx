@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import Input from "../inputs/input";
 import Button from "../button_dinamic/button";
+import { Eye, EyeOff } from "lucide-react";
 
 // ======================================================
 // TIPOS: RESPOSTA DE ERRO DO BACKEND COM ZOD
@@ -79,6 +80,7 @@ const Login = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   // ======================================================
   // MUTATION: AUTENTICAÇÃO DO USUÁRIO
@@ -178,16 +180,23 @@ const Login = () => {
           {/* ============================================ */}
           {/* CAMPO: SENHA COM VALIDAÇÃO VISUAL           */}
           {/* ============================================ */}
-          <div className="flex flex-col gap-1">
+          <div className="relative flex w-full flex-col gap-1">
             <Input
               placeholder="Senha"
-              type="password"
+              type={mostrarSenha ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loginMutation.isPending}
-              // Adiciona borda vermelha se houver erro de validação
-              className={getFieldError("password") ? "border-red-500" : ""}
+              className={`w-full ${getFieldError("password") ? "border-red-500" : ""}`}
             />
+            <button
+              type="button"
+              onClick={() => setMostrarSenha(!mostrarSenha)}
+              className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-200"
+            >
+              {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+
             {/* Exibe mensagem de erro específica do campo senha */}
             {getFieldError("password") && (
               <span className="text-xs text-red-500">

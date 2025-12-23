@@ -21,8 +21,8 @@
 // - Centralizar regras de autenticação em um único controller
 // - Facilitar manutenção, testes e escalabilidade do sistema
 //
-// ARQUITETURA REFATORADA:
-// - Controller: Recebe requisições HTTP e retorna respostas
+// ARQUITETURA:
+// - Controller: Orquestra requisições e respostas HTTP
 // - Service: Contém toda a lógica de negócio
 // - Repository: Gerencia acesso ao banco de dados
 // - Utils: Funções auxiliares reutilizáveis (JWT, etc)
@@ -30,8 +30,11 @@
 
 import { Request, Response } from "express";
 import { ZodError } from "zod";
+import { setAuthCookie } from "../utils/authCookie.util.js";
 
-// Importação dos schemas de validação
+// ======================================================
+// IMPORTAÇÃO DOS SCHEMAS DE VALIDAÇÃO (ZOD)
+// ======================================================
 import {
   registerSchema,
   loginSchema,
@@ -41,14 +44,14 @@ import {
   type UpdatePasswordInput,
 } from "../segurança_zod/auntentication_schema.js";
 
-// Importação dos services (lógica de negócio)
+// ======================================================
+// IMPORTAÇÃO DOS SERVICES (LÓGICA DE NEGÓCIO)
+// ======================================================
 import * as authService from "../services/auth.service.js";
 
 // ======================================================
 // FUNÇÃO AUXILIAR: TRATAMENTO DE ERROS DO ZOD
 // ======================================================
-// Centraliza a formatação das respostas de erro de validação
-// para manter um padrão consistente na API.
 function handleZodError(error: ZodError, response: Response) {
   return response.status(400).json({
     error: "Dados inválidos",
@@ -62,10 +65,7 @@ function handleZodError(error: ZodError, response: Response) {
 // ======================================================
 // FUNÇÃO AUXILIAR: TRATAMENTO DE ERROS DO SERVICE
 // ======================================================
-// Mapeia os erros lançados pelos services para respostas HTTP adequadas.
-// Centraliza o tratamento de erros de negócio.
 function handleServiceError(error: Error, response: Response) {
-  // Erros conhecidos da lógica de negócio
   if (error.message === "EMAIL_ALREADY_EXISTS") {
     return response.status(409).json({
       error: "Email já cadastrado, por favor use outro Email",
@@ -78,7 +78,6 @@ function handleServiceError(error: Error, response: Response) {
     });
   }
 
-  // Erro genérico (não esperado)
   console.error("❌ Erro inesperado:", error);
   return response.status(500).json({
     error: "Erro interno do servidor",
@@ -93,20 +92,13 @@ export async function register(request: Request, response: Response) {
     // ======================================================
     // PASSO Nº 1 — VALIDAÇÃO DOS DADOS COM ZOD
     // ======================================================
-    // Valida os dados enviados no body da requisição usando o schema do Zod.
-    // Se algum campo estiver inválido ou faltando, o Zod lança um erro automaticamente.
     const validatedData: RegisterInput = registerSchema.parse(request.body);
 
-    // Desestrutura os dados já validados, extraindo apenas os campos necessários
-    // para o processo de registro do usuário.
     const { email, password, name, cep, telefone } = validatedData;
 
     // ======================================================
     // PASSO Nº 2 — DELEGAÇÃO PARA O SERVICE
     // ======================================================
-    // O controller apenas orquestra: valida dados e chama o service.
-    // Toda a lógica de negócio (verificação de email, hash, criação)
-    // está no service, mantendo o controller limpo e focado.
     const result = await authService.registerUser({
       name,
       email,
@@ -122,26 +114,17 @@ export async function register(request: Request, response: Response) {
       success: true,
       message: "Usuário criado com sucesso",
       user: result.user,
-      token: result.token, // Token JWT para autenticação imediata
+      token: result.token, // Mantido para compatibilidade atual
     });
   } catch (error) {
-    // ======================================================
-    // TRATAMENTO DE ERROS DE VALIDAÇÃO ZOD
-    // ======================================================
     if (error instanceof ZodError) {
       return handleZodError(error, response);
     }
 
-    // ======================================================
-    // TRATAMENTO DE ERROS DE NEGÓCIO (SERVICE)
-    // ======================================================
     if (error instanceof Error) {
       return handleServiceError(error, response);
     }
 
-    // ======================================================
-    // TRATAMENTO DE ERROS INESPERADOS
-    // ======================================================
     console.error("❌ Erro no registro:", error);
     return response.status(500).json({
       error: "Erro interno do servidor",
@@ -150,7 +133,7 @@ export async function register(request: Request, response: Response) {
 }
 
 // ======================================================
-// CONTROLLER: LOGIN DE USUÁRIO
+// CONTROLLER: LOGIN DE USUÁRIO (JWT EM HTTPONLY COOKIE)
 // ======================================================
 export async function login(request: Request, response: Response) {
   try {
@@ -163,39 +146,38 @@ export async function login(request: Request, response: Response) {
     // ======================================================
     // PASSO Nº 2 — DELEGAÇÃO PARA O SERVICE
     // ======================================================
-    // O service contém toda a lógica de busca, validação de senha,
-    // e geração de token. O controller apenas orquestra.
     const result = await authService.loginUser({
       email,
       password,
     });
 
     // ======================================================
-    // PASSO Nº 3 — RETORNO DA RESPOSTA DE SUCESSO
+    // PASSO Nº 3 — ARMAZENAMENTO DO JWT EM COOKIE HTTPONLY
     // ======================================================
+    //
+    // A criação do cookie foi extraída para um util
+    // para manter o controller limpo e focado apenas
+    // na orquestração da requisição.
+    //
+    setAuthCookie(response, result.token);
+
+    // ======================================================
+    // PASSO Nº 4 — RETORNO DA RESPOSTA DE SUCESSO
+    // ======================================================
+    // O token NÃO é enviado no body, apenas os dados do usuário
     return response.status(200).json({
       success: true,
       user: result.user,
-      token: result.token, // Token JWT para autenticação nas próximas requisições
     });
   } catch (error) {
-    // ======================================================
-    // TRATAMENTO DE ERROS DE VALIDAÇÃO ZOD
-    // ======================================================
     if (error instanceof ZodError) {
       return handleZodError(error, response);
     }
 
-    // ======================================================
-    // TRATAMENTO DE ERROS DE NEGÓCIO (SERVICE)
-    // ======================================================
     if (error instanceof Error) {
       return handleServiceError(error, response);
     }
 
-    // ======================================================
-    // TRATAMENTO DE ERROS INESPERADOS
-    // ======================================================
     console.error("❌ Erro no login:", error);
     return response.status(500).json({
       error: "Erro interno do servidor",
@@ -208,10 +190,6 @@ export async function login(request: Request, response: Response) {
 // ======================================================
 export async function listUsers(_request: Request, response: Response) {
   try {
-    // ======================================================
-    // DELEGAÇÃO PARA O SERVICE
-    // ======================================================
-    // Busca todos os usuários através do service.
     const users = await authService.getAllUsers();
 
     return response.json({
@@ -231,18 +209,12 @@ export async function listUsers(_request: Request, response: Response) {
 // ======================================================
 export async function updatePassword(request: Request, response: Response) {
   try {
-    // ======================================================
-    // VALIDAÇÃO DOS DADOS COM ZOD
-    // ======================================================
     const validatedData: UpdatePasswordInput = updatePasswordSchema.parse(
       request.body
     );
+
     const { email, newPassword } = validatedData;
 
-    // ======================================================
-    // DELEGAÇÃO PARA O SERVICE
-    // ======================================================
-    // O service cuida do hash e da atualização no banco.
     const result = await authService.updatePassword({
       email,
       newPassword,
@@ -254,43 +226,13 @@ export async function updatePassword(request: Request, response: Response) {
       email: result.email,
     });
   } catch (error) {
-    // ======================================================
-    // TRATAMENTO DE ERROS DE VALIDAÇÃO ZOD
-    // ======================================================
     if (error instanceof ZodError) {
       return handleZodError(error, response);
     }
 
-    // ======================================================
-    // TRATAMENTO DE ERROS INESPERADOS
-    // ======================================================
     console.error("❌ Erro ao atualizar senha:", error);
     return response.status(500).json({
       error: "Erro ao atualizar senha",
     });
   }
 }
-
-/*
-```
-
----
-
-## **📊 Resumo da Refatoração**
-
-### **Estrutura Criada:**
-```
-src/
-├── controllers/
-│   └── auth.controller.ts      ✅ Refatorado (apenas orquestração)
-├── services/
-│   └── auth.service.ts         ✅ NOVO (lógica de negócio)
-├── repositories/
-│   └── user.repository.ts      ✅ NOVO (acesso ao banco)
-├── utils/
-│   └── jwt.util.ts             ✅ NOVO (utilitário JWT)
-└── segurança_zod/
-    └── auntentication_schema.ts ✅ Mantido (validação)
-
-
-  */

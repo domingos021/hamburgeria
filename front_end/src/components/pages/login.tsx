@@ -31,35 +31,68 @@ import type {
   de autenticação pela rota:
   POST http://localhost:3000/login
 */
+// ======================================================
+// FUNÇÃO: loginUser
+// RESPONSABILIDADE: Realizar autenticação do usuário
+// ======================================================
 
 const loginUser = async (credentials: { email: string; password: string }) => {
+  // ------------------------------------------------------
+  // 1️⃣ Envia a requisição HTTP para a API de login
+  //    - Método: POST
+  //    - Endpoint: /login
+  //    - Corpo: credenciais do usuário (email e senha)
+  //    - credentials: "include" permite enviar/receber cookies HttpOnly
+  // ------------------------------------------------------
   const response = await fetch("http://localhost:3000/login", {
     method: "POST",
+    credentials: "include", // Essencial para que cookies funcionem entre domínios diferentes
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(credentials),
   });
 
-  // Converte a resposta para JSON
+  // ------------------------------------------------------
+  // 2️⃣ Converte a resposta da API para o formato JSON
+  //    - Pode conter dados de sucesso ou de erro
+  // ------------------------------------------------------
   const data = await response.json();
 
-  // Verifica se a resposta da API foi bem-sucedida
+  // ------------------------------------------------------
+  // 3️⃣ Verifica se a resposta da API NÃO foi bem-sucedida
+  //    - response.ok será false para status 4xx ou 5xx
+  // ------------------------------------------------------
   if (!response.ok) {
-    // Converte para tipo de erro
+    // --------------------------------------------------
+    // 4️⃣ Converte o JSON retornado para o tipo de erro esperado
+    //    - Normalmente contém mensagem e detalhes do Zod
+    // --------------------------------------------------
     const errorData = data as ApiErrorResponse;
 
-    // Cria um erro customizado que inclui os detalhes de validação do Zod
+    // --------------------------------------------------
+    // 5️⃣ Cria um erro customizado com mensagem da API
+    //    - Usa a mensagem retornada ou uma mensagem padrão
+    // --------------------------------------------------
     const error: CustomError = new Error(errorData.error || "Falha no login");
 
-    // Anexa os detalhes dos erros de validação ao objeto de erro
+    // --------------------------------------------------
+    // 6️⃣ Anexa os detalhes dos erros de validação
+    //    - Utilizado para exibir mensagens específicas no frontend
+    // --------------------------------------------------
     error.details = errorData.details;
 
-    // Lança o erro com os detalhes para ser capturado pelo onError
+    // --------------------------------------------------
+    // 7️⃣ Lança o erro para ser tratado por quem chamou a função
+    //    - Ex: onError do React Query ou try/catch
+    // --------------------------------------------------
     throw error;
   }
 
-  // Retorna os dados da resposta (ex: token, usuário)
+  // ------------------------------------------------------
+  // 8️⃣ Retorna os dados em caso de sucesso
+  //    - Ex: token JWT e informações do usuário
+  // ------------------------------------------------------
   return data as ApiSuccessResponse;
 };
 
@@ -69,13 +102,15 @@ const loginUser = async (credentials: { email: string; password: string }) => {
 
 const Login = () => {
   // ======================================================
-  // HOOKS DO REACT ROUTER
+  // 1️⃣ HOOKS DO REACT ROUTER
+  //    - Responsáveis pela navegação entre páginas
   // ======================================================
 
   const navigate = useNavigate();
 
   // ======================================================
-  // ESTADOS DO FORMULÁRIO
+  // 2️⃣ ESTADOS DO FORMULÁRIO
+  //    - Controlam os valores digitados pelo usuário
   // ======================================================
 
   const [email, setEmail] = useState("");
@@ -83,93 +118,101 @@ const Login = () => {
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
   // ======================================================
-  // MUTATION: AUTENTICAÇÃO DO USUÁRIO
+  // 3️⃣ MUTATION: AUTENTICAÇÃO DO USUÁRIO
+  //    - Gerencia a requisição de login e seus estados
   // ======================================================
 
   const loginMutation = useMutation({
-    // Função responsável por executar a requisição de login
+    // 3.1️⃣ Função responsável por executar a requisição de login
     mutationFn: loginUser,
 
-    // Executado quando o login ocorre com sucesso
+    // 3.2️⃣ Executado quando o login ocorre com sucesso
     onSuccess: (data) => {
       console.log("Login bem-sucedido:", data);
 
-      // Salva os dados do usuário no localStorage
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // 3.2.1️⃣ O cookie JWT foi automaticamente salvo pelo backend
+      //        Não é necessário salvar nada no localStorage ou criar cookies manualmente
+      //        O navegador gerencia os cookies HttpOnly automaticamente
 
-      // Redireciona para o dashboard
-      navigate("/dashboard");
+      // 3.2.2️⃣ Redireciona o usuário para o dashboard ou seção inicial
+      navigate("/");
     },
 
-    // Executado quando ocorre erro na autenticação
+    // 3.3️⃣ Executado quando ocorre erro na autenticação
     onError: (error) => {
       console.error("Erro no login:", error);
-      // Os detalhes do erro agora incluem informações específicas do Zod
+      // Os detalhes do erro podem conter validações do Zod
     },
   });
 
   // ======================================================
-  // HANDLER: ENVIO DO FORMULÁRIO
+  // 4️⃣ HANDLER: ENVIO DO FORMULÁRIO
+  //    - Disparado ao submeter o formulário
   // ======================================================
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    // Impede o comportamento padrão do formulário
+    // 4.1️⃣ Impede o comportamento padrão do formulário (reload da página)
     e.preventDefault();
 
-    // Dispara a mutation com os dados informados
+    // 4.2️⃣ Dispara a mutation com os dados informados pelo usuário
     loginMutation.mutate({ email, password });
   };
 
   // ======================================================
-  // HELPER: BUSCA ERRO ESPECÍFICO DE UM CAMPO
+  // 5️⃣ HELPER: BUSCA ERRO ESPECÍFICO DE UM CAMPO
+  //    - Utilizado para exibir mensagens de erro por input
   // ======================================================
 
-  // Função auxiliar para verificar se há erro de validação
-  // em um campo específico e retornar a mensagem
   const getFieldError = (fieldName: string): string | undefined => {
+    // 5.1️⃣ Converte o erro retornado para o tipo CustomError
     const error = loginMutation.error as CustomError;
+
+    // 5.2️⃣ Procura o erro correspondente ao campo informado
     return error?.details?.find((d) => d.field === fieldName)?.message;
   };
 
   // ======================================================
-  // HELPER: OBTÉM DETALHES DE ERRO DO ZOD
+  // 6️⃣ HELPER: OBTÉM LISTA DE ERROS DE VALIDAÇÃO DO ZOD
+  //    - Usado para exibir erros múltiplos
   // ======================================================
 
-  // Extrai os detalhes de validação do erro, se existirem
   const errorDetails = loginMutation.isError
     ? (loginMutation.error as CustomError).details
     : undefined;
 
   // ======================================================
-  // RENDERIZAÇÃO DO COMPONENTE
+  // 7️⃣ RENDERIZAÇÃO DO COMPONENTE
   // ======================================================
 
   return (
     <div className="flex h-screen items-center justify-center bg-[#161410]">
       <form
+        // 7.1️⃣ Associa o submit do formulário ao handler
         onSubmit={handleSubmit}
         className="flex flex-col items-center justify-center gap-2"
       >
-        {/* Logo com redirecionamento para a home */}
+        {/* 7.2️⃣ Logo com link para a página inicial */}
         <Link to="/">
           <img className="mx-auto mb-4" src="./logo.png" alt="Logo da marca" />
         </Link>
 
         <div className="mb-4 flex flex-col gap-2">
-          {/* ============================================ */}
-          {/* CAMPO: EMAIL COM VALIDAÇÃO VISUAL           */}
-          {/* ============================================ */}
+          {/* ================================================= */}
+          {/* 8️⃣ CAMPO: EMAIL COM VALIDAÇÃO VISUAL              */}
+          {/* ================================================= */}
           <div className="flex flex-col gap-1">
             <Input
               placeholder="Email"
               type="text"
               value={email}
+              // 8.1️⃣ Atualiza o estado conforme o usuário digita
               onChange={(e) => setEmail(e.target.value)}
               disabled={loginMutation.isPending}
-              // Adiciona borda vermelha se houver erro de validação
+              // 8.2️⃣ Aplica borda vermelha se houver erro no campo
               className={getFieldError("email") ? "border-red-500" : ""}
             />
-            {/* Exibe mensagem de erro específica do campo email */}
+
+            {/* 8.3️⃣ Exibe mensagem de erro específica do email */}
             {getFieldError("email") && (
               <span className="text-xs text-red-500">
                 {getFieldError("email")}
@@ -177,20 +220,23 @@ const Login = () => {
             )}
           </div>
 
-          {/* ============================================ */}
-          {/* CAMPO: SENHA COM VALIDAÇÃO VISUAL E ÍCONE   */}
-          {/* ============================================ */}
+          {/* ================================================= */}
+          {/* 9️⃣ CAMPO: SENHA COM VISIBILIDADE DINÂMICA         */}
+          {/* ================================================= */}
           <div className="flex flex-col gap-1">
             <div className="relative w-full">
               <Input
                 placeholder="Senha"
                 type={mostrarSenha ? "text" : "password"}
                 value={password}
+                // 9.1️⃣ Atualiza o estado da senha
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loginMutation.isPending}
-                // Adiciona borda vermelha se houver erro de validação
+                // 9.2️⃣ Aplica borda vermelha se houver erro
                 className={getFieldError("password") ? "border-red-500" : ""}
               />
+
+              {/* 9.3️⃣ Botão para alternar visibilidade da senha */}
               <button
                 type="button"
                 onClick={() => setMostrarSenha(!mostrarSenha)}
@@ -200,7 +246,8 @@ const Login = () => {
                 {mostrarSenha ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            {/* Exibe mensagem de erro específica do campo senha */}
+
+            {/* 9.4️⃣ Exibe mensagem de erro específica da senha */}
             {getFieldError("password") && (
               <span className="text-xs text-red-500">
                 {getFieldError("password")}
@@ -209,11 +256,9 @@ const Login = () => {
           </div>
         </div>
 
-        {/* ================================================ */}
-        {/* MENSAGEM: ERRO GERAL (SEM DETALHES DE VALIDAÇÃO) */}
-        {/* ================================================ */}
-        {/* Exibe apenas quando há erro MAS não há detalhes do Zod */}
-        {/* (ex: credenciais inválidas, servidor offline, etc) */}
+        {/* ================================================= */}
+        {/* 🔟 MENSAGEM: ERRO GERAL (SEM DETALHES DE VALIDAÇÃO) */}
+        {/* ================================================= */}
         {loginMutation.isError && !errorDetails && (
           <div className="flex w-full gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
             <span className="shrink-0 text-red-500">⚠️</span>
@@ -221,10 +266,9 @@ const Login = () => {
           </div>
         )}
 
-        {/* ================================================ */}
-        {/* MENSAGEM: LISTA DE ERROS DE VALIDAÇÃO (MÚLTIPLOS) */}
-        {/* ================================================ */}
-        {/* Exibe lista completa quando há mais de um erro de validação */}
+        {/* ================================================= */}
+        {/* 1️⃣1️⃣ MENSAGEM: ERROS MÚLTIPLOS DE VALIDAÇÃO        */}
+        {/* ================================================= */}
         {errorDetails && errorDetails.length > 1 && (
           <div className="flex w-full gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
             <span className="shrink-0 text-red-500">⚠️</span>
@@ -241,25 +285,25 @@ const Login = () => {
           </div>
         )}
 
-        {/* ================================================ */}
-        {/* BOTÃO: SUBMIT DO FORMULÁRIO                      */}
-        {/* ================================================ */}
+        {/* ================================================= */}
+        {/* 1️⃣2️⃣ BOTÃO: SUBMIT DO FORMULÁRIO                   */}
+        {/* ================================================= */}
         <Button
           title={loginMutation.isPending ? "Carregando..." : "Login"}
           type="submit"
           disabled={loginMutation.isPending}
         />
 
-        {/* ================================================ */}
-        {/* BOTÃO: RECUPERAÇÃO DE SENHA                      */}
-        {/* ================================================ */}
+        {/* ================================================= */}
+        {/* 1️⃣3️⃣ LINK: RECUPERAÇÃO DE SENHA                    */}
+        {/* ================================================= */}
         <Link to="/forgot-password" className="w-full">
           <Button title="Esqueci minha senha" variantButton="outline" />
         </Link>
 
-        {/* ================================================ */}
-        {/* LINK: PÁGINA DE CADASTRO                         */}
-        {/* ================================================ */}
+        {/* ================================================= */}
+        {/* 1️⃣4️⃣ LINK: PÁGINA DE CADASTRO                      */}
+        {/* ================================================= */}
         <Link to="/register" className="w-full">
           <Button title="Não tenho uma conta" variantButton="outline" />
         </Link>

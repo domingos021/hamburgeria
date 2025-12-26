@@ -10,6 +10,41 @@ import { Eye, EyeOff } from "lucide-react";
 import Input from "../inputs/input";
 import Button from "../button_dinamic/button";
 
+//=======================================================================================>
+// ======================================================
+// CONTEXT: GERENCIAMENTO GLOBAL DO USUÁRIO
+// ======================================================
+
+// Hook customizado responsável por fornecer acesso ao
+// contexto global do usuário.
+//
+// O useUser encapsula internamente o uso do useContext
+// e do UserContext, centralizando toda a configuração
+// e evitando imports repetitivos em cada componente.
+//
+// Essa abordagem melhora a legibilidade do código,
+// reduz acoplamento e mantém a arquitetura mais limpa
+// e escalável.
+import { useUser } from "../../contexts/user/useUser";
+
+/*
+  IMPLEMENTAÇÃO INTERNA DO useUser (ABSTRAÍDA):
+
+  import { useContext } from "react";
+  import { UserContext } from "./UserContext";
+
+  export function useUser() {
+    return useContext(UserContext);
+  }
+
+  Ou seja:
+  - O componente NÃO precisa importar useContext
+  - O componente NÃO precisa importar UserContext
+  - Toda a lógica de acesso ao contexto fica centralizada
+    no hook useUser
+*/
+//<===================================================================================
+
 // ======================================================
 // TIPOS: RESPOSTA DE ERRO DO BACKEND COM ZOD
 // ======================================================
@@ -17,36 +52,26 @@ import type {
   ApiErrorResponse,
   ApiSuccessResponse,
   CustomError,
-} from "../../types/zod_interfaces/interfaces";
+} from "../../types/zod_interfaces/interfacesApiUser";
 
 // ======================================================
 // FUNÇÃO: REQUISIÇÃO DE LOGIN (API)
 // ======================================================
-
+//
 // Responsável por enviar as credenciais do usuário
 // para o backend e retornar a resposta da autenticação
-/*
-  Realiza a comunicação com o backend enviando
-  as credenciais de login e recebendo a resposta
-  de autenticação pela rota:
-  POST http://localhost:3000/login
-*/
-// ======================================================
-// FUNÇÃO: loginUser
-// RESPONSABILIDADE: Realizar autenticação do usuário
+//
+// Rota utilizada:
+// POST http://localhost:3000/login
 // ======================================================
 
 const loginUser = async (credentials: { email: string; password: string }) => {
   // ------------------------------------------------------
   // 1️⃣ Envia a requisição HTTP para a API de login
-  //    - Método: POST
-  //    - Endpoint: /login
-  //    - Corpo: credenciais do usuário (email e senha)
-  //    - credentials: "include" permite enviar/receber cookies HttpOnly
   // ------------------------------------------------------
   const response = await fetch("http://localhost:3000/login", {
     method: "POST",
-    credentials: "include", // Essencial para que cookies funcionem entre domínios diferentes
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -54,44 +79,24 @@ const loginUser = async (credentials: { email: string; password: string }) => {
   });
 
   // ------------------------------------------------------
-  // 2️⃣ Converte a resposta da API para o formato JSON
-  //    - Pode conter dados de sucesso ou de erro
+  // 2️⃣ Converte a resposta da API para JSON
   // ------------------------------------------------------
   const data = await response.json();
 
   // ------------------------------------------------------
-  // 3️⃣ Verifica se a resposta da API NÃO foi bem-sucedida
-  //    - response.ok será false para status 4xx ou 5xx
+  // 3️⃣ Verifica se a resposta NÃO foi bem-sucedida
   // ------------------------------------------------------
   if (!response.ok) {
-    // --------------------------------------------------
-    // 4️⃣ Converte o JSON retornado para o tipo de erro esperado
-    //    - Normalmente contém mensagem e detalhes do Zod
-    // --------------------------------------------------
     const errorData = data as ApiErrorResponse;
 
-    // --------------------------------------------------
-    // 5️⃣ Cria um erro customizado com mensagem da API
-    //    - Usa a mensagem retornada ou uma mensagem padrão
-    // --------------------------------------------------
     const error: CustomError = new Error(errorData.error || "Falha no login");
 
-    // --------------------------------------------------
-    // 6️⃣ Anexa os detalhes dos erros de validação
-    //    - Utilizado para exibir mensagens específicas no frontend
-    // --------------------------------------------------
     error.details = errorData.details;
-
-    // --------------------------------------------------
-    // 7️⃣ Lança o erro para ser tratado por quem chamou a função
-    //    - Ex: onError do React Query ou try/catch
-    // --------------------------------------------------
     throw error;
   }
 
   // ------------------------------------------------------
-  // 8️⃣ Retorna os dados em caso de sucesso
-  //    - Ex: token JWT e informações do usuário
+  // 4️⃣ Retorna dados em caso de sucesso
   // ------------------------------------------------------
   return data as ApiSuccessResponse;
 };
@@ -103,78 +108,75 @@ const loginUser = async (credentials: { email: string; password: string }) => {
 const Login = () => {
   // ======================================================
   // 1️⃣ HOOKS DO REACT ROUTER
-  //    - Responsáveis pela navegação entre páginas
   // ======================================================
 
   const navigate = useNavigate();
 
   // ======================================================
-  // 2️⃣ ESTADOS DO FORMULÁRIO
-  //    - Controlam os valores digitados pelo usuário
+  // 2️⃣ CONTEXTO DO USUÁRIO (PODE SER UNDEFINED)
+  // ======================================================
+  //
+  // OBSERVAÇÃO IMPORTANTE:
+  // - Em rotas públicas como /login, o contexto pode ser undefined
+  // - Isso é esperado e NÃO é erro
+  // - Por isso tratamos com optional chaining
+  //
+
+  const userContext = useUser(); //toda config do context
+
+  // ======================================================
+  // 3️⃣ ESTADOS DO FORMULÁRIO
   // ======================================================
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("beckymel27@gmail.com");
   const [password, setPassword] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
   // ======================================================
-  // 3️⃣ MUTATION: AUTENTICAÇÃO DO USUÁRIO
-  //    - Gerencia a requisição de login e seus estados
+  // 4️⃣ MUTATION: AUTENTICAÇÃO DO USUÁRIO
   // ======================================================
 
   const loginMutation = useMutation({
-    // 3.1️⃣ Função responsável por executar a requisição de login
     mutationFn: loginUser,
 
-    // 3.2️⃣ Executado quando o login ocorre com sucesso
     onSuccess: (data) => {
-      console.log("Login bem-sucedido:", data);
+      // Salva o usuário no contexto global, se ele existir
+      userContext?.setUser({
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name,
+        cep: data.user.cep,
+        telefone: data.user.telefone,
+      });
 
-      // 3.2.1️⃣ O cookie JWT foi automaticamente salvo pelo backend
-      //        Não é necessário salvar nada no localStorage ou criar cookies manualmente
-      //        O navegador gerencia os cookies HttpOnly automaticamente
+      console.log("Login bem-sucedido:", data.user);
 
-      // 3.2.2️⃣ Redireciona o usuário para o dashboard ou seção inicial
+      // Redireciona para a página inicial
       navigate("/");
     },
 
-    // 3.3️⃣ Executado quando ocorre erro na autenticação
     onError: (error) => {
       console.error("Erro no login:", error);
-      // Os detalhes do erro podem conter validações do Zod
     },
   });
 
   // ======================================================
-  // 4️⃣ HANDLER: ENVIO DO FORMULÁRIO
-  //    - Disparado ao submeter o formulário
+  // 5️⃣ HANDLER: SUBMISSÃO DO FORMULÁRIO
   // ======================================================
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    // 4.1️⃣ Impede o comportamento padrão do formulário (reload da página)
     e.preventDefault();
-
-    // 4.2️⃣ Dispara a mutation com os dados informados pelo usuário
     loginMutation.mutate({ email, password });
   };
 
   // ======================================================
-  // 5️⃣ HELPER: BUSCA ERRO ESPECÍFICO DE UM CAMPO
-  //    - Utilizado para exibir mensagens de erro por input
+  // 6️⃣ HELPERS DE ERRO
   // ======================================================
 
   const getFieldError = (fieldName: string): string | undefined => {
-    // 5.1️⃣ Converte o erro retornado para o tipo CustomError
     const error = loginMutation.error as CustomError;
-
-    // 5.2️⃣ Procura o erro correspondente ao campo informado
     return error?.details?.find((d) => d.field === fieldName)?.message;
   };
-
-  // ======================================================
-  // 6️⃣ HELPER: OBTÉM LISTA DE ERROS DE VALIDAÇÃO DO ZOD
-  //    - Usado para exibir erros múltiplos
-  // ======================================================
 
   const errorDetails = loginMutation.isError
     ? (loginMutation.error as CustomError).details
@@ -187,32 +189,28 @@ const Login = () => {
   return (
     <div className="flex h-screen items-center justify-center bg-[#161410]">
       <form
-        // 7.1️⃣ Associa o submit do formulário ao handler
         onSubmit={handleSubmit}
         className="flex flex-col items-center justify-center gap-2"
       >
-        {/* 7.2️⃣ Logo com link para a página inicial */}
+        {/* Logo com link para home */}
         <Link to="/">
           <img className="mx-auto mb-4" src="./logo.png" alt="Logo da marca" />
         </Link>
 
         <div className="mb-4 flex flex-col gap-2">
           {/* ================================================= */}
-          {/* 8️⃣ CAMPO: EMAIL COM VALIDAÇÃO VISUAL              */}
+          {/* CAMPO: EMAIL                                     */}
           {/* ================================================= */}
           <div className="flex flex-col gap-1">
             <Input
               placeholder="Email"
               type="text"
               value={email}
-              // 8.1️⃣ Atualiza o estado conforme o usuário digita
               onChange={(e) => setEmail(e.target.value)}
               disabled={loginMutation.isPending}
-              // 8.2️⃣ Aplica borda vermelha se houver erro no campo
               className={getFieldError("email") ? "border-red-500" : ""}
             />
 
-            {/* 8.3️⃣ Exibe mensagem de erro específica do email */}
             {getFieldError("email") && (
               <span className="text-xs text-red-500">
                 {getFieldError("email")}
@@ -221,7 +219,7 @@ const Login = () => {
           </div>
 
           {/* ================================================= */}
-          {/* 9️⃣ CAMPO: SENHA COM VISIBILIDADE DINÂMICA         */}
+          {/* CAMPO: SENHA                                     */}
           {/* ================================================= */}
           <div className="flex flex-col gap-1">
             <div className="relative w-full">
@@ -229,14 +227,11 @@ const Login = () => {
                 placeholder="Senha"
                 type={mostrarSenha ? "text" : "password"}
                 value={password}
-                // 9.1️⃣ Atualiza o estado da senha
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loginMutation.isPending}
-                // 9.2️⃣ Aplica borda vermelha se houver erro
                 className={getFieldError("password") ? "border-red-500" : ""}
               />
 
-              {/* 9.3️⃣ Botão para alternar visibilidade da senha */}
               <button
                 type="button"
                 onClick={() => setMostrarSenha(!mostrarSenha)}
@@ -247,7 +242,6 @@ const Login = () => {
               </button>
             </div>
 
-            {/* 9.4️⃣ Exibe mensagem de erro específica da senha */}
             {getFieldError("password") && (
               <span className="text-xs text-red-500">
                 {getFieldError("password")}
@@ -257,7 +251,7 @@ const Login = () => {
         </div>
 
         {/* ================================================= */}
-        {/* 🔟 MENSAGEM: ERRO GERAL (SEM DETALHES DE VALIDAÇÃO) */}
+        {/* MENSAGENS DE ERRO                                 */}
         {/* ================================================= */}
         {loginMutation.isError && !errorDetails && (
           <div className="flex w-full gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
@@ -266,9 +260,6 @@ const Login = () => {
           </div>
         )}
 
-        {/* ================================================= */}
-        {/* 1️⃣1️⃣ MENSAGEM: ERROS MÚLTIPLOS DE VALIDAÇÃO        */}
-        {/* ================================================= */}
         {errorDetails && errorDetails.length > 1 && (
           <div className="flex w-full gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
             <span className="shrink-0 text-red-500">⚠️</span>
@@ -286,7 +277,7 @@ const Login = () => {
         )}
 
         {/* ================================================= */}
-        {/* 1️⃣2️⃣ BOTÃO: SUBMIT DO FORMULÁRIO                   */}
+        {/* BOTÕES E LINKS                                   */}
         {/* ================================================= */}
         <Button
           title={loginMutation.isPending ? "Carregando..." : "Login"}
@@ -294,16 +285,10 @@ const Login = () => {
           disabled={loginMutation.isPending}
         />
 
-        {/* ================================================= */}
-        {/* 1️⃣3️⃣ LINK: RECUPERAÇÃO DE SENHA                    */}
-        {/* ================================================= */}
         <Link to="/forgot-password" className="w-full">
           <Button title="Esqueci minha senha" variantButton="outline" />
         </Link>
 
-        {/* ================================================= */}
-        {/* 1️⃣4️⃣ LINK: PÁGINA DE CADASTRO                      */}
-        {/* ================================================= */}
         <Link to="/register" className="w-full">
           <Button title="Não tenho uma conta" variantButton="outline" />
         </Link>

@@ -1,4 +1,4 @@
 const OrderRequests = () => {
-  return <div>Rotas de pedidos</div>;
+  return <div className="text-white">Cardapios</div>;
 };
 export default OrderRequests;

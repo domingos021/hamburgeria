@@ -55,6 +55,11 @@ import type {
 } from "../../types/zod_interfaces/interfacesApiUser";
 
 // ======================================================
+// CONFIGURAÇÃO DA API
+// ======================================================
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+// ======================================================
 // FUNÇÃO: REQUISIÇÃO DE LOGIN (API)
 // ======================================================
 //
@@ -62,16 +67,17 @@ import type {
 // para o backend e retornar a resposta da autenticação
 //
 // Rota utilizada:
-// POST http://localhost:3000/login
+// POST http://localhost:3000/auth/login
 // ======================================================
 
 const loginUser = async (credentials: { email: string; password: string }) => {
   // ------------------------------------------------------
   // 1️⃣ Envia a requisição HTTP para a API de login
   // ------------------------------------------------------
-  const response = await fetch("http://localhost:3000/login", {
+  // 🔧 CORRIGIDO: Adicionado /auth antes de /login
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
-    credentials: "include",
+    credentials: "include", // 🚨 Necessário para enviar/receber cookies
     headers: {
       "Content-Type": "application/json",
     },
@@ -149,14 +155,14 @@ const Login = () => {
         telefone: data.user.telefone,
       });
 
-      console.log("Login bem-sucedido:", data.user);
+      console.log("✅ Login bem-sucedido:", data.user);
 
       // Redireciona para a página inicial
       navigate("/");
     },
 
     onError: (error) => {
-      console.error("Erro no login:", error);
+      console.error("❌ Erro no login:", error);
     },
   });
 

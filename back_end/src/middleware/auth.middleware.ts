@@ -14,7 +14,7 @@
 // protegidas baseado na autenticação.
 //
 // OBJETIVOS:
-// - Validar tokens JWT enviados no header Authorization
+// - Validar tokens JWT enviados via cookie
 // - Decodificar e anexar informações do usuário à requisição
 // - Proteger rotas que requerem autenticação
 // - Tratar erros de token (expirado, inválido, ausente)
@@ -62,7 +62,7 @@ declare global {
 }
 
 // ======================================================
-// MIDDLEWARE: AUTENTICAÇÃO JWT
+// MIDDLEWARE: AUTENTICAÇÃO JWT (LÊ DO COOKIE)
 // ======================================================
 export function authenticateToken(
   request: Request,
@@ -71,18 +71,15 @@ export function authenticateToken(
 ): void {
   try {
     // ======================================================
-    // PASSO Nº 1 — EXTRAÇÃO DO TOKEN DO HEADER
+    // PASSO Nº 1 — EXTRAÇÃO DO TOKEN DO COOKIE
     // ======================================================
-    // Busca o header Authorization que deve estar no formato: "Bearer TOKEN"
-    const authHeader = request.headers.authorization;
+    // 🔹 CORRIGIDO: usando notação de colchetes
+    const token = request.cookies?.["token"];
 
-    console.log(
-      "🔍 Header Authorization:",
-      authHeader ? "Presente" : "Ausente"
-    );
+    console.log("🔍 Token do cookie:", token ? "Presente" : "Ausente");
 
-    // Verifica se o header existe
-    if (!authHeader) {
+    // Verifica se o token existe
+    if (!token) {
       response.status(401).json({
         error: "Token de autenticação não fornecido",
         message: "É necessário estar autenticado para acessar este recurso",
@@ -90,46 +87,10 @@ export function authenticateToken(
       return;
     }
 
-    // ======================================================
-    // PASSO Nº 2 — SEPARAÇÃO DO TOKEN
-    // ======================================================
-    // Separa "Bearer" do token real
-    // Formato esperado: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-    const parts = authHeader.split(" ");
-
-    // Valida o formato do header
-    if (parts.length !== 2) {
-      response.status(401).json({
-        error: "Formato de token inválido",
-        message: "O token deve estar no formato: Bearer [token]",
-      });
-      return;
-    }
-
-    const [scheme, token] = parts;
-
-    // Garantir que scheme e token não são undefined
-    if (!scheme || !token) {
-      response.status(401).json({
-        error: "Formato de token inválido",
-        message: "O token deve estar no formato: Bearer [token]",
-      });
-      return;
-    }
-
-    // Verifica se o scheme é "Bearer"
-    if (!/^Bearer$/i.test(scheme)) {
-      response.status(401).json({
-        error: "Formato de token inválido",
-        message: "O token deve começar com 'Bearer'",
-      });
-      return;
-    }
-
-    console.log("🔑 Token extraído com sucesso");
+    console.log("🔑 Token extraído do cookie com sucesso");
 
     // ======================================================
-    // PASSO Nº 3 — VERIFICAÇÃO E DECODIFICAÇÃO DO TOKEN
+    // PASSO Nº 2 — VERIFICAÇÃO E DECODIFICAÇÃO DO TOKEN
     // ======================================================
     try {
       // Verifica e decodifica o token usando a chave secreta
@@ -146,14 +107,14 @@ export function authenticateToken(
         console.log("✅ Token válido para usuário:", payload.email);
 
         // ======================================================
-        // PASSO Nº 4 — ANEXA DADOS DO USUÁRIO À REQUISIÇÃO
+        // PASSO Nº 3 — ANEXA DADOS DO USUÁRIO À REQUISIÇÃO
         // ======================================================
         // Adiciona as informações do usuário ao objeto request
         // Isso permite que os controllers acessem request.user
         request.user = payload;
 
         // ======================================================
-        // PASSO Nº 5 — PROSSEGUE PARA O PRÓXIMO MIDDLEWARE/CONTROLLER
+        // PASSO Nº 4 — PROSSEGUE PARA O PRÓXIMO MIDDLEWARE/CONTROLLER
         // ======================================================
         next();
         return;
@@ -219,44 +180,29 @@ export function optionalAuth(
   _response: Response,
   next: NextFunction
 ): void {
-  const authHeader = request.headers.authorization;
+  // 🔹 CORRIGIDO: usando notação de colchetes
+  const token = request.cookies?.["token"];
 
   // Se não houver token, apenas prossegue sem autenticar
-  if (!authHeader) {
+  if (!token) {
     next();
     return;
   }
 
   try {
-    const parts = authHeader.split(" ");
+    const decoded = jwt.verify(token, JWT_SECRET);
 
-    if (parts.length === 2) {
-      const [scheme, token] = parts;
-
-      // Garantir que scheme e token não são undefined
-      if (scheme && token && /^Bearer$/i.test(scheme)) {
-        try {
-          const decoded = jwt.verify(token, JWT_SECRET);
-
-          if (
-            typeof decoded === "object" &&
-            decoded !== null &&
-            "userId" in decoded &&
-            "email" in decoded
-          ) {
-            request.user = decoded as JwtPayload;
-            console.log(
-              "✅ Usuário autenticado opcionalmente:",
-              request.user.email
-            );
-          }
-        } catch {
-          // Ignora erros silenciosamente
-        }
-      }
+    if (
+      typeof decoded === "object" &&
+      decoded !== null &&
+      "userId" in decoded &&
+      "email" in decoded
+    ) {
+      request.user = decoded as JwtPayload;
+      console.log("✅ Usuário autenticado opcionalmente:", request.user.email);
     }
-  } catch (error) {
-    // Falha silenciosa - não bloqueia a requisição
+  } catch {
+    // Ignora erros silenciosamente
     console.log("ℹ️ Token opcional inválido ou expirado");
   }
 

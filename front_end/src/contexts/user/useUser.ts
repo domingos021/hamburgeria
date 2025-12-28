@@ -1,3 +1,4 @@
+// Hook customizado: useUser
 import { useContext } from "react";
 import { UserContext } from "./UserContext";
 

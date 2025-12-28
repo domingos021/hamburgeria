@@ -6,7 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 const Register = () => {
   // ------------------------------
-  // Estados para armazenar o email e a senha
+  // Estados para armazenar os dados do formulário
   // ------------------------------
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -19,7 +19,9 @@ const Register = () => {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // ------------------------------
   // Função para limpar o formulário
+  // ------------------------------
   const resetForm = () => {
     setName("");
     setEmail("");
@@ -31,6 +33,7 @@ const Register = () => {
     setMostrarConfirmarSenha(false);
     setError("");
   };
+
   // ------------------------------
   // Função executada ao enviar o formulário
   // ------------------------------
@@ -38,53 +41,52 @@ const Register = () => {
   // para a API do backend, portanto precisa aguardar (await)
   // a resposta antes de continuar a execução.
   // e.preventDefault() impede que a página seja recarregada.
-  // O console.log serve para depuração e exibe os valores atuais dos campos do formulário.
-
+  // O console.log serve para depuração.
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // Evita recarregar a página
 
     try {
-      // Exibe valores para depuração (ou remova em produção)
+      // Exibe valores para depuração (remover em produção)
       console.log({ name, email, senha, confirmarSenha, cep, telefone });
-      // Aqui você faria a requisição para o backend (rota do registro)
 
-      //=========================informações a ser enviada============
+      // ------------------------------
+      // VALIDAÇÕES NO FRONTEND
+      // ------------------------------
+
+      // Verifica se os campos obrigatórios foram preenchidos
+      if (!email || !senha || !confirmarSenha || !cep) {
+        setError("Preencha todos os campos obrigatórios");
+        setSuccessMessage("");
+        return;
+      }
+
+      // Verifica se a senha e a confirmação são iguais
+      if (senha !== confirmarSenha) {
+        setError("As senhas não coincidem");
+        setSuccessMessage("");
+        return;
+      }
+
+      // ------------------------------
+      // REQUISIÇÃO PARA O BACKEND
+      // ------------------------------
       /*
-    Método: POST
-    Headers: padrão (ex: Content-Type: application/json)
-    Body: informações do cadastro do usuário (name, email, senha, cep, telefone)
+        Método: POST
+        Headers: Content-Type application/json
+        Body: informações do cadastro do usuário
 
-    Fluxo:
+        Fluxo:
+        1) O frontend envia os dados do formulário
+        2) A requisição POST vai para a rota /register
+        3) O backend valida e cria o usuário
+        4) O backend devolve uma resposta
+        5) O frontend trata sucesso ou erro
+      */
 
-    1) O frontend envia os dados do formulário usando async/await
-    2) A requisição POST vai para a rota /register do backend
-    3) O backend recebe os dados e cria o usuário no banco de dados
-    4) Após a criação, o backend devolve uma resposta (response) ao frontend
-    5) O frontend recebe a resposta e pode reagir (ex: mostrar mensagem de sucesso ou erro)
-
-    Diagrama simplificado:
-
-    Frontend
-       |
-       | POST /register {name, email, senha, cep, telefone}
-       v
-    Backend (rota /register)
-       |
-       | await prisma.user.create({ ... })
-       v
-    Banco de Dados (User table)
-       ^
-       | resposta
-    Backend envia JSON { success: true, user: { ... } }
-       ^
-       | response
-    Frontend recebe a resposta
-    */
-
-      const response = await fetch("http://localhost:3000/register", {
+      const response = await fetch("http://localhost:3000/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Converte toda informação enviada para json
+        // Converte toda informação enviada para JSON
         body: JSON.stringify({
           name,
           email,
@@ -94,22 +96,34 @@ const Register = () => {
         }),
       });
 
-      // EXIBE VISUALMENTE A RESPOSTA/ERRO/SUCESSO
+      // ------------------------------
+      // TRATAMENTO DA RESPOSTA
+      // ------------------------------
       switch (response.status) {
         case 409:
+          // Email já cadastrado
           setError("Email já cadastrado!\nPor favor, use outro email");
-          setSuccessMessage(""); // limpa mensagem de sucesso
-          break;
-        case 400:
-          setError("Todos os campos devem estar preenchidos");
           setSuccessMessage("");
           break;
+
+        case 400: {
+          // Erro de validação (ex: Zod, campos inválidos)
+          const data = await response.json();
+          setError(data.error || "Dados inválidos");
+          setSuccessMessage("");
+          break;
+        }
+
+        case 200:
         case 201:
-          resetForm(); // limpa o formulário em caso de sucesso
-          setError(""); // limpa erro
+          // Cadastro realizado com sucesso
+          resetForm();
+          setError("");
           setSuccessMessage("Usuário cadastrado com sucesso");
           break;
+
         default:
+          // Erro inesperado
           setError("Ocorreu um erro inesperado. Tente novamente.");
           setSuccessMessage("");
       }
@@ -118,7 +132,7 @@ const Register = () => {
       console.error("Erro ao enviar formulário:", err);
       setError("Erro ao enviar formulário. Tente novamente.");
       setSuccessMessage("");
-    } // ✅ Fim do try/catch
+    }
   };
 
   return (
@@ -127,7 +141,7 @@ const Register = () => {
     // ------------------------------
     <div className="flex h-screen items-center justify-center bg-[#161410]">
       {/* ------------------------------
-          Formulário de Login
+          Formulário de Cadastro
          ------------------------------ */}
       <form
         onSubmit={handleSubmit}

@@ -375,6 +375,25 @@ usuario teste
 }
 
 {
+
+const registrado = {
+name: "Maira Jose",
+email: "mairajose@gmail.com",
+senha: "Maira2024?",
+confirmarSenha: "Maira2024?",
+cep: "70658252",
+telefone: "61960802345",
+};
+const registrado = {
+name: "Maira Jose",
+email: "mairajose@gmail.com",
+senha: "Maira2024?",
+confirmarSenha: "Maira2024?",
+cep: "70658252",
+telefone: "61960802345",
+};
+
+{
 "name": "Carlos Mendes",
 "email": "carlos.mendes@gmail.com",
 "password": "CarlosMendes123?",

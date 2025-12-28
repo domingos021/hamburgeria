@@ -11,10 +11,10 @@
     // =====================================================
 
     // Define o sistema de módulos como Node16 (ESM moderno)
-    "module": "Node16",
+    "module": "NodeNext",
 
     // Define como o TypeScript resolve imports (compatível com Node ESM)
-    "moduleResolution": "Node16",
+    "moduleResolution": "NodeNext",
 
     // Define a versão do JavaScript de saída
     "target": "ES2022",

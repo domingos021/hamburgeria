@@ -14,8 +14,8 @@
 //
 // OBJETIVOS:
 // - Organizar rotas de autenticação de forma clara
-// - Proteger rotas que exigem autenticação com middleware JWT
-// - Facilitar manutenção e escalabilidade do roteamento
+// - Proteger rotas que exigem autenticação
+// - Facilitar manutenção e escalabilidade
 // ======================================================
 
 import { Router } from "express";
@@ -26,60 +26,42 @@ import {
   updatePassword,
 } from "../controllers/auth_controller.js";
 import { authenticateToken } from "../middleware/auth.middleware.js";
+
+// 🔽 ROTAS DE LOGOUT (ARQUIVO SEPARADO)
+import logoutRoutes from "./auth.routes.logOut.js";
+
 const router = Router();
 
 // ======================================================
 // ROTAS PÚBLICAS (SEM AUTENTICAÇÃO)
 // ======================================================
-// Estas rotas não exigem token JWT para serem acessadas
 
 // POST /auth/register - Registra um novo usuário
 router.post("/register", register);
 
-// POST /auth/login - Realiza login e retorna token JWT
+// POST /auth/login - Realiza login e cria cookie JWT
 router.post("/login", login);
 
 // ======================================================
 // ROTAS PROTEGIDAS (REQUEREM AUTENTICAÇÃO)
 // ======================================================
-// Estas rotas exigem token JWT válido no header Authorization
-// Formato: Authorization: Bearer [seu-token-aqui]
 
-// GET /auth/users - Lista todos os usuários (PROTEGIDA)
-// O middleware authenticateToken valida o token antes de executar listUsers
+// GET /auth/users - Lista usuários
 router.get("/users", authenticateToken, listUsers);
 
-// PATCH /auth/update-password - Atualiza senha do usuário (PROTEGIDA)
-// O middleware authenticateToken valida o token antes de executar updatePassword
+// PATCH /auth/update-password - Atualiza senha
 router.patch("/update-password", authenticateToken, updatePassword);
+
+// ======================================================
+// ROTAS DE LOGOUT
+// ======================================================
+//
+// Aqui conectamos o arquivo auth.routes.logOut.ts
+// Sem isso, a rota NÃO existe em runtime
+//
+router.use(logoutRoutes);
 
 // ======================================================
 // EXPORTAÇÃO DO ROUTER
 // ======================================================
 export default router;
-
-// ======================================================
-// INSTRUÇÕES DE USO
-// ======================================================
-//
-// ROTAS PÚBLICAS:
-// Podem ser acessadas sem token, apenas enviando o body necessário
-//
-// Exemplo de requisição para /register:
-// POST http://localhost:3000/auth/register
-// Content-Type: application/json
-// {
-//   "email": "usuario@example.com",
-//   "password": "senha123",
-//   "name": "Nome do Usuário",
-//   "cep": "12345678"
-// }
-//
-// ROTAS PROTEGIDAS:
-// Devem incluir o token JWT no header Authorization
-//
-// Exemplo de requisição para /users:
-// GET http://localhost:3000/auth/users
-// Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-//
-// ======================================================

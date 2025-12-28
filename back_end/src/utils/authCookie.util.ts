@@ -30,3 +30,20 @@ export function setAuthCookie(response: Response, token: string) {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }
+
+// ======================================================
+// FUNÇÃO: clearAuthCookie
+// ======================================================
+// Remove o cookie de autenticação do navegador.
+// Deve usar EXATAMENTE as mesmas opções do setAuthCookie.
+// ======================================================
+export function clearAuthCookie(response: Response) {
+  const isProduction = process.env["NODE_ENV"] === "production";
+
+  response.clearCookie("token", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: "strict",
+    path: "/", // precisa ser IGUAL ao do setAuthCookie
+  });
+}

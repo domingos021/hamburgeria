@@ -1,3 +1,4 @@
+// Context: UserContext
 import { createContext } from "react";
 import type { UserInterface } from "../../types/userTypes/user";
 
@@ -10,6 +11,9 @@ export interface UserContextType {
   setUser: (user: UserInterface | null) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  clearError: () => void;
 }
 
 // ======================================================

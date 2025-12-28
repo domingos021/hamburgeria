@@ -81,15 +81,31 @@ export async function registerUser(input: RegisterUserInput) {
   // ======================================================
   // Delega a criação do usuário para o repository, que gerencia
   // a comunicação com o banco de dados (Prisma).
-  const newUser = await userRepository.createUser({
-    name: name ?? null,
-    email,
-    password: hashedPassword,
-    cep,
-    telefone,
-  });
+  let newUser;
 
-  console.log("✅ Usuário criado:", newUser.email);
+  try {
+    newUser = await userRepository.createUser({
+      name: name ?? null,
+      email,
+      password: hashedPassword,
+      cep,
+      telefone,
+    });
+
+    console.log("✅ Usuário criado:", newUser.email);
+  } catch (error: any) {
+    // ------------------------------------------------------
+    // TRATAMENTO DE ERRO DE CONSTRAINT ÚNICA (EMAIL DUPLICADO)
+    // ------------------------------------------------------
+    // O Prisma lança o erro P2002 quando uma constraint UNIQUE
+    // é violada (ex: email já existente no banco).
+    if (error.code === "P2002") {
+      throw new Error("EMAIL_ALREADY_EXISTS");
+    }
+
+    // Repassa qualquer outro erro inesperado
+    throw error;
+  }
 
   // ======================================================
   // PASSO Nº 4 — GERAÇÃO DO TOKEN JWT
